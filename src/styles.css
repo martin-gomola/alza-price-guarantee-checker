@@ -1,0 +1,183 @@
+[data-testid="component-alternativePricingModule"],
+[data-testid="alternative-pricing-container"],
+[data-testid="alternative-pricing-item"],
+.alternativePricingModule,
+.ads-pb--instalments-c,
+[class*="ads-pb--instalments"],
+.warranty-list-compact,
+.warranty-list,
+.accessoriesBlockNew {
+  display: none !important;
+}
+
+#alza-checker-root {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: none;
+  margin: 12px 0;
+  padding: 10px;
+  border: 1px solid #d6e3ef;
+  border-radius: 6px;
+  background: #fff;
+  color: #1f2933;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+#alza-checker-root * {
+  box-sizing: border-box;
+}
+
+#alza-checker-root [hidden] {
+  display: none !important;
+}
+
+.alza-checker-title {
+  color: #0b356c;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.alza-checker-meta {
+  margin-top: 2px;
+  color: #52606d;
+}
+
+.alza-checker-query {
+  display: none;
+  margin-top: 4px;
+  color: #334e68;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.alza-checker-button {
+  width: 100%;
+  min-height: 34px;
+  margin-top: 8px;
+  border: 0;
+  border-radius: 4px;
+  background: #2f8ed8;
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+}
+
+.alza-checker-summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2px 10px;
+  align-items: center;
+  min-height: 40px;
+  margin-top: 8px;
+  padding: 8px 10px;
+  border-left: 4px solid #2f8ed8;
+  background: #f5f7fa;
+  color: #52606d;
+}
+
+.alza-checker-summary-label {
+  color: #52606d;
+  font-size: 12px;
+  grid-column: 1 / -1;
+}
+
+.alza-checker-summary-title {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-weight: 700;
+}
+
+.alza-checker-summary-price {
+  color: #b91c1c;
+  font-weight: 700;
+  text-align: right;
+}
+
+.alza-checker-summary a {
+  color: #0b5cad;
+  text-decoration: underline;
+}
+
+.alza-checker-button:hover {
+  background: #247ec3;
+}
+
+.alza-checker-button:disabled {
+  background: #9fb3c8;
+  cursor: progress;
+}
+
+.alza-checker-status {
+  margin-top: 6px;
+  color: #52606d;
+  font-size: 13px;
+}
+
+.alza-checker-toggle {
+  min-height: 32px;
+  margin-top: 8px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #0b5cad;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  text-align: left;
+  text-decoration: underline;
+}
+
+.alza-checker-results {
+  display: none;
+  gap: 8px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.alza-checker-root--expanded .alza-checker-results {
+  display: grid;
+}
+
+.alza-checker-row {
+  display: grid;
+  grid-template-columns: minmax(96px, 1fr) auto;
+  gap: 4px 10px;
+  padding: 10px;
+  border-left: 4px solid #9fb3c8;
+  background: #f5f7fa;
+}
+
+.alza-checker-row--found {
+  border-left-color: #2f8ed8;
+}
+
+.alza-checker-row--missing {
+  border-left-color: #cbd2d9;
+}
+
+.alza-checker-shop {
+  overflow-wrap: anywhere;
+  font-weight: 700;
+}
+
+.alza-checker-price {
+  color: #b91c1c;
+  font-weight: 700;
+  text-align: right;
+}
+
+.alza-checker-detail {
+  min-width: 0;
+  color: #52606d;
+  grid-column: 1 / -1;
+  overflow-wrap: anywhere;
+}
+
+.alza-checker-detail a {
+  color: #0b5cad;
+  text-decoration: underline;
+}
