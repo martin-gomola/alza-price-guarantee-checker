@@ -63,10 +63,14 @@
     }
   }
 
-  const MAX_SENSIBLE_UNIT_PRICE = 200;
   const isCzLocale = /alza\.cz/i.test(window.location.hostname);
   const currencySymbol = isCzLocale ? "K\u010d" : "\u20ac";
   const currencyLocale = isCzLocale ? "cs-CZ" : "sk-SK";
+  const MAX_SENSIBLE_UNIT_PRICE = isCzLocale ? 5000 : 200;
+
+  function hasPriceText(text) {
+    return text.includes(currencySymbol) || (isCzLocale && /\d\s*,-/.test(text));
+  }
 
   function computeUnitPrice(price, quantity) {
     if (!quantity || !price || price <= 0) return null;
@@ -121,7 +125,7 @@
     );
 
     for (const priceEl of priceElements) {
-      if (!priceEl.textContent.includes(currencySymbol)) continue;
+      if (!hasPriceText(priceEl.textContent)) continue;
       if (priceEl.closest(`[${UNIT_PRICE_ATTR}]`)) continue;
 
       const card = findCardAncestor(priceEl);
@@ -160,7 +164,7 @@
 
       const links = fallback.querySelectorAll("a[href]");
       const hasTitle = [...links].some(a => a.textContent.trim().length > 10);
-      const hasPrice = fallback.textContent.includes(currencySymbol);
+      const hasPrice = hasPriceText(fallback.textContent);
       if (hasTitle && hasPrice) return fallback;
     }
 
@@ -190,7 +194,7 @@
       const text = el.textContent.trim();
       if (
         text.length > 10 && text.length < 300 &&
-        !text.includes(currencySymbol) &&
+        !hasPriceText(text) &&
         /\d+\s*(g|kg|ml|l)\b/i.test(text)
       ) {
         return text;
@@ -208,7 +212,7 @@
 
     for (const el of priceEls) {
       const text = el.textContent;
-      if (!text.includes(currencySymbol)) continue;
+      if (!hasPriceText(text)) continue;
       if (/\/1?\s*(kg|l|ks|g|ml)\b/.test(text)) continue;
 
       const price = extractFirstPrice(text);
@@ -227,7 +231,7 @@
   }
 
   function hasExistingUnitPrice(card) {
-    return /\d+[.,]\d+\s*(?:€|Kč|CZK)\s*\/\s*1?\s*(kg|l|ks|g|ml)\b/i.test(card.textContent);
+    return /\d+[.,]\d+\s*(?:€|Kč|CZK|,-)\s*\/\s*1?\s*(kg|l|ks|g|ml)\b/i.test(card.textContent);
   }
 
   function processCard(card) {
