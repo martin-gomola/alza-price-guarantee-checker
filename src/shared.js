@@ -25,6 +25,7 @@
       },
       "https://abc-zoo.sk/modules/luigiboxapi/search.php?search_query={query}&orderby=position&orderway=desc"
     ],
+    "4camping.sk": ["https://www.4camping.sk/search?q={queryPlus}"],
     "4kids.sk": ["https://www.4kids.sk/vyhladavanie/?q={queryPlus}"],
     "alltoys.sk": ["https://www.alltoys.sk/vyhladavanie/?q={queryPlus}"],
     "benulekaren.sk": ["https://www.benulekaren.sk/vyhladavanie?q={queryPlus}"],
@@ -45,6 +46,7 @@
     "petcenter.sk": ["https://www.petcenter.sk/vyhladavanie/?string={query}"],
     "spokojnypes.sk": ["https://www.spokojnypes.sk/vyhladavanie/?q={query}", "https://www.spokojnypes.sk/search/?q={query}"],
     "smarty.sk": ["https://www.smarty.sk/Vyhladavanie?query={query}"],
+    "sportisimo.sk": ["https://www.sportisimo.sk/vyhladavanie/?q={queryPlus}"],
     "superzoo.sk": ["https://www.superzoo.sk/hladanie/?query={query}"],
     "tetadrogerie.sk": ["https://www.tetadrogerie.sk/produkty/?hladaj={queryPlus}"]
   };

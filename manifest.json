@@ -42,7 +42,11 @@
     "https://www.spokojnypes.sk/*",
     "https://www.smarty.sk/*",
     "https://www.superzoo.sk/*",
-    "https://www.tetadrogerie.sk/*"
+    "https://www.tetadrogerie.sk/*",
+    "https://www.4camping.sk/*",
+    "https://4camping.sk/*",
+    "https://www.sportisimo.sk/*",
+    "https://sportisimo.sk/*"
   ],
   "background": {
     "service_worker": "src/background.js"
