@@ -15,10 +15,22 @@ Chrome extension that compares Alza.sk prices against competitor shops listed in
 
 ## Install
 
-1. Open `chrome://extensions`
-2. Enable Developer mode
-3. Click **Load unpacked**, select this folder
-4. Visit any Alza.sk product page
+### From GitHub Release (recommended)
+
+1. Download the latest `.zip` from [Releases](https://github.com/martin-gomola/alza-price-guarantee-checker/releases)
+2. Extract the zip to a folder
+3. Open `chrome://extensions`
+4. Enable **Developer mode** (top-right toggle)
+5. Click **Load unpacked**, select the extracted folder
+6. Visit any Alza.sk product page
+
+### From source
+
+1. Clone this repo
+2. Open `chrome://extensions`
+3. Enable **Developer mode**
+4. Click **Load unpacked**, select the repo folder
+5. Visit any Alza.sk product page
 
 The comparison panel appears below the buy button. Click **Skontrolovať konkurenciu** to run.
 
