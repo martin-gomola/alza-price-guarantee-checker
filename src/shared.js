@@ -315,7 +315,7 @@
   }
 
   function parseSupportedShopsFromText(text) {
-    const ignored = new Set(["alza.sk", "www.alza.sk", "alza.cz", "www.alza.cz"]);
+    const ignored = new Set(["alza.sk", "www.alza.sk", "nalza.sk", "alza.cz", "www.alza.cz", "nalza.cz"]);
     const domains = new Set();
     const normalizedText = String(text || "")
       .replace(/&(?:#46|period);/gi, ".")
