@@ -25,11 +25,11 @@
       },
       "https://abc-zoo.sk/modules/luigiboxapi/search.php?search_query={query}&orderby=position&orderway=desc"
     ],
-    "4camping.sk": ["https://www.4camping.sk/search?q={queryPlus}"],
+    "4camping.sk": ["https://www.4camping.sk/vyhladavanie/?w={query}"],
     "4kids.sk": ["https://www.4kids.sk/vyhladavanie/?q={queryPlus}"],
     "alltoys.sk": ["https://www.alltoys.sk/vyhladavanie/?q={queryPlus}"],
     "benulekaren.sk": ["https://www.benulekaren.sk/vyhladavanie?q={queryPlus}"],
-    "decathlon.sk": ["https://www.decathlon.sk/search/?query={query}"],
+    "decathlon.sk": ["https://www.decathlon.sk/search/?query={queryPlus}"],
     "dracik.sk": ["https://www.dracik.sk/search/?q={queryPlus}"],
     "drmax.sk": ["https://www.drmax.sk/search?q={queryPlus}"],
     "heureka.sk": ["https://www.heureka.sk/?h%5Bfraze%5D={queryPlus}"],
@@ -46,7 +46,7 @@
     "petcenter.sk": ["https://www.petcenter.sk/vyhladavanie/?string={query}"],
     "spokojnypes.sk": ["https://www.spokojnypes.sk/vyhladavanie/?q={query}", "https://www.spokojnypes.sk/search/?q={query}"],
     "smarty.sk": ["https://www.smarty.sk/Vyhladavanie?query={query}"],
-    "sportisimo.sk": ["https://www.sportisimo.sk/vyhladavanie/?q={queryPlus}"],
+    "sportisimo.sk": ["https://www.sportisimo.sk/vyhladavanie-produktov/?q={queryPlus}"],
     "superzoo.sk": ["https://www.superzoo.sk/hladanie/?query={query}"],
     "tetadrogerie.sk": ["https://www.tetadrogerie.sk/produkty/?hladaj={queryPlus}"]
   };
@@ -376,8 +376,8 @@
       "[data-prodprice]",
       'meta[property="product:price:amount"]',
       'meta[property="og:price:amount"]',
-      '[itemprop="lowPrice"]',
-      '[itemprop="price"]'
+      '[itemprop="price"]',
+      '[itemprop="lowPrice"]'
     ];
 
     for (const candidate of element.querySelectorAll(selectors.join(","))) {
@@ -789,7 +789,8 @@
       const title = decodeHtml(match[2]);
       const href = chunk.match(/<a\b[^>]*href=["']([^"']+)["']/i)?.[1] || baseUrl;
       const price = (
-        parsePriceValue(stripHtml(decodeHtml(chunk.match(/data-testid=["']fulltext\.item\.price["'][^>]*>([\s\S]{0,120}?)<\/strong>/i)?.[1] || ""))) ||
+        parsePriceValue(stripHtml(decodeHtml(chunk.match(/data-testid=["']fulltext\.item\.price["'][^>]*>([\s\S]{0,200}?)<\/(?:strong|span|div|p)>/i)?.[1] || ""))) ||
+        parsePriceValue(stripHtml(decodeHtml(chunk.match(/class=["'][^"']*price[^"']*["'][^>]*>([\s\S]{0,200}?)<\/(?:strong|span|div|p)>/i)?.[1] || ""))) ||
         parseAttributeProductPrice(chunk)
       );
       const candidate = buildCandidate(title, price, href, baseUrl, queryTokens);
@@ -855,7 +856,10 @@
         }
 
         const offer = Array.isArray(item.offers) ? item.offers[0] : item.offers;
-        const price = parsePriceValue(offer?.price);
+        const isAggregate = /AggregateOffer/i.test(String(offer?.["@type"] || ""));
+        const price = isAggregate
+          ? parsePriceValue(offer?.price)
+          : parsePriceValue(offer?.price) || parsePriceValue(offer?.lowPrice);
         const href = offer?.url || item.url || baseUrl;
         const candidate = buildCandidate(item.name, price, href, baseUrl, queryTokens);
 
