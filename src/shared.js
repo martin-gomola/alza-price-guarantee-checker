@@ -35,7 +35,7 @@
     "hornbach.sk": ["https://www.hornbach.sk/s/{query}?isInitialRequest=false"],
     "hudysport.sk": ["https://www.hudysport.sk/vyhledavani?q={query}"],
     "istores.sk": ["https://www.istores.sk/vyhladavanie?q={queryPlus}"],
-    "istyle.sk": ["https://www.istyle.sk/search?q={query}&type=product"],
+    "istyle.sk": ["https://istyle.sk/search?type=product&q={queryPlus}"],
     "kytary.sk": ["https://kytary.sk/Search/?term={query}&kw={query}"],
     "nay.sk": ["https://www.nay.sk/vyhladavanie?q={query}"],
     "obi.sk": ["https://www.obi.sk/search/{queryPlus}"],

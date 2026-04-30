@@ -2,7 +2,7 @@
 
 Chrome extension that compares Alza.sk prices against competitor shops listed in their "Garancia najlepšej ceny" program. Also blocks ads, shows unit prices, and strips tracking scripts on Alza and Heureka.
 
-<img src="docs/screenshot.png" alt="Price comparison panel on Alza product page" width="400">
+<img src="docs/store-screenshot.png" alt="Price comparison panel on Alza product page" width="600">
 
 ## Features
 
