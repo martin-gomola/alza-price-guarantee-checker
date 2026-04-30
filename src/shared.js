@@ -174,14 +174,25 @@
   }
 
   function parseCzkPrices(text) {
-    const matches = String(text || "").matchAll(/(?<![a-z0-9-])(\d{1,6}(?:[\s.]\d{3})*(?:[,.]\d{1,2})?)\s*(?:K\u010d|CZK)/gi);
     const prices = [];
 
-    for (const match of matches) {
+    for (const match of String(text || "").matchAll(/(?<![a-z0-9-])(\d{1,6}(?:[\s.]\d{3})*(?:[,.]\d{1,2})?)\s*(?:K\u010d|CZK)/gi)) {
       const normalized = match[1].replace(/[\s.]/g, "").replace(",", ".");
       const value = Number.parseFloat(normalized);
 
       if (Number.isFinite(value) && value > 0) {
+        prices.push({
+          value,
+          text: `${match[1].replace(/\s+/g, " ")} K\u010d`
+        });
+      }
+    }
+
+    for (const match of String(text || "").matchAll(/(?<![a-z0-9-])(\d{1,6}(?:[\s\u00a0.]\d{3})*)\s*,-/g)) {
+      const normalized = match[1].replace(/[\s\u00a0.]/g, "");
+      const value = Number.parseFloat(normalized);
+
+      if (Number.isFinite(value) && value > 0 && value >= 10) {
         prices.push({
           value,
           text: `${match[1].replace(/\s+/g, " ")} K\u010d`
@@ -220,6 +231,12 @@
     return currency === "CZK" ? formatCzkPrice(value) : formatEuroPrice(value);
   }
 
+  let defaultCurrency = "EUR";
+
+  function setDefaultCurrency(currency) {
+    defaultCurrency = currency === "CZK" ? "CZK" : "EUR";
+  }
+
   function parsePriceValue(value) {
     const normalized = normalizeWhitespace(value);
 
@@ -231,7 +248,7 @@
       return parseEuroPrice(normalized);
     }
 
-    if (/K\u010d|CZK/i.test(normalized)) {
+    if (/K\u010d|CZK/i.test(normalized) || /,-\s*$/.test(normalized)) {
       return parseCzkPrice(normalized);
     }
 
@@ -243,7 +260,7 @@
 
     return {
       value: number,
-      text: formatEuroPrice(number)
+      text: formatPrice(number, defaultCurrency)
     };
   }
 
@@ -1054,7 +1071,8 @@
     parseProductPrice,
     parseSupportedShopsFromText,
     isBlockedProductUrl,
-    detectCurrency
+    detectCurrency,
+    setDefaultCurrency
   };
 
   root.AlzaCheckerShared = api;

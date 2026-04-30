@@ -563,6 +563,10 @@
     return root;
   }
 
+  if (getLocale() === "cz") {
+    shared.setDefaultCurrency("CZK");
+  }
+
   if (settingsApi) {
     const settings = await settingsApi.getSettings();
     state.priceVerificationEnabled = settings.priceVerificationEnabled;

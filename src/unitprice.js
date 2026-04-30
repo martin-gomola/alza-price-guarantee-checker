@@ -97,9 +97,11 @@
   }
 
   function extractFirstPrice(text) {
-    const m = String(text || "").match(/(\d[\d\s]*(?:,\d{1,2})?)\s*(?:\u20ac|K\u010d|CZK)/i);
+    const s = String(text || "");
+    const m = s.match(/(\d[\d\s\u00a0]*(?:,\d{1,2})?)\s*(?:\u20ac|K\u010d|CZK)/i)
+      || (isCzLocale && s.match(/(\d[\d\s\u00a0]*)\s*,-/));
     if (!m) return null;
-    const value = parseNum(m[1].replace(/\s/g, ""));
+    const value = parseNum(m[1].replace(/[\s\u00a0]/g, ""));
     return Number.isFinite(value) && value > 0 ? value : null;
   }
 
