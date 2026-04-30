@@ -1,3 +1,4 @@
-tmp
-test
-_metadata
+tmp/
+test/
+_metadata/
+node_modules/

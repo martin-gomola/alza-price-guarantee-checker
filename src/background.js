@@ -14,7 +14,7 @@ async function fetchForContentScript(message) {
     const response = await fetch(message.url, {
       method: message.method || "GET",
       body: message.body || undefined,
-      credentials: "include",
+      credentials: "omit",
       redirect: "follow",
       signal: controller.signal,
       headers: {

@@ -2,6 +2,8 @@
 
 Chrome extension that compares Alza.sk prices against competitor shops listed in their "Garancia najlepšej ceny" program. Also blocks ads, shows unit prices, and strips tracking scripts on Alza and Heureka.
 
+<img src="docs/screenshot.png" alt="Price comparison panel on Alza product page" width="400">
+
 ## Features
 
 - **Price comparison** — searches 20+ Slovak e-shops (heureka, drmax, nay, decathlon, alltoys, etc.) and extracts the best matching price

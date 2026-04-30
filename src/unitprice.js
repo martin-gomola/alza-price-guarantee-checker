@@ -63,12 +63,16 @@
     }
   }
 
+  const MAX_SENSIBLE_UNIT_PRICE = 200;
+
   function computeUnitPrice(price, quantity) {
     if (!quantity || !price || price <= 0) return null;
     const base = toBase(quantity.amount, quantity.unit);
     if (!base || base.value <= 0) return null;
     const perUnit = price / base.value;
     if (!Number.isFinite(perUnit) || perUnit <= 0) return null;
+
+    if (!base.perPiece && perUnit > MAX_SENSIBLE_UNIT_PRICE) return null;
 
     let text;
     if (base.perPiece) {
@@ -290,7 +294,7 @@
 
     const title = document.querySelector("#h1c h1, #h1c > h1, h1")?.textContent?.trim() ?? "";
     const descEl = document.querySelector(
-      ".nameextc, [class*='nameExt'], [data-testid='productDescription'], .shortDesc, #visual-params, [class*='parameters']"
+      ".nameextc, [class*='nameExt'], [data-testid='productDescription'], .shortDesc"
     );
     const desc = descEl?.textContent?.trim() ?? "";
 

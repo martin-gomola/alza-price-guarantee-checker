@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Alza Price Guarantee Checker",
   "description": "Compares Alza.sk product prices against shops supported by Garancia najlepsej ceny.",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "permissions": [
     "storage",
     "declarativeNetRequest"
@@ -17,7 +17,31 @@
     ]
   },
   "host_permissions": [
-    "<all_urls>"
+    "https://www.alza.sk/*",
+    "https://alza.sk/*",
+    "https://*.heureka.sk/*",
+    "https://www.4kids.sk/*",
+    "https://abc-zoo.sk/*",
+    "https://www.alltoys.sk/*",
+    "https://www.benulekaren.sk/*",
+    "https://www.decathlon.sk/*",
+    "https://www.dracik.sk/*",
+    "https://www.drmax.sk/*",
+    "https://www.hornbach.sk/*",
+    "https://www.hudysport.sk/*",
+    "https://www.istores.sk/*",
+    "https://www.istyle.sk/*",
+    "https://kytary.sk/*",
+    "https://www.nay.sk/*",
+    "https://www.obi.sk/*",
+    "https://www.planeo.sk/*",
+    "https://www.pompo.sk/*",
+    "https://www.profizoo.sk/*",
+    "https://www.petcenter.sk/*",
+    "https://www.spokojnypes.sk/*",
+    "https://www.smarty.sk/*",
+    "https://www.superzoo.sk/*",
+    "https://www.tetadrogerie.sk/*"
   ],
   "background": {
     "service_worker": "src/background.js"
@@ -76,8 +100,21 @@
       "run_at": "document_start"
     }
   ],
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
   "action": {
-    "default_title": "Alza Price Guarantee Checker"
+    "default_title": "Alza Price Guarantee Checker",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'none'"
   },
   "options_ui": {
     "page": "src/options.html",
