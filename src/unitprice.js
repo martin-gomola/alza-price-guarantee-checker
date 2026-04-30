@@ -1,10 +1,17 @@
-(function runUnitPrice() {
+(async function runUnitPrice() {
+  const settingsApi = window.AlzaCheckerSettings;
+  if (settingsApi) {
+    const settings = await settingsApi.getSettings();
+    if (!settings.unitPriceEnabled) return;
+  }
+
   const UNIT_PRICE_ATTR = "data-alza-unitprice";
   const PROCESSED_ATTR = "data-alza-unitprice-processed";
   const DEBOUNCE_MS = 300;
   let debounceTimer = null;
 
   const MULTI_PATTERN = /(\d+)\s*[×x]\s*(\d+(?:[.,]\d+)?)\s*(g|kg|ml|l)\b/i;
+  const PIECES_PATTERN = /(\d+)\s*(?:dielikov|dielov|dílků|dílů|pieces|pcs|ks)\b/i;
   const QUANTITY_PATTERNS = [
     { regex: /(\d+(?:[.,]\d+)?)\s*kg\b/i, unit: "kg" },
     { regex: /(\d+(?:[.,]\d+)?)\s*g\b/i, unit: "g" },
@@ -33,6 +40,15 @@
         }
       }
     }
+
+    const pieces = s.match(PIECES_PATTERN);
+    if (pieces) {
+      const amount = parseNum(pieces[1]);
+      if (amount >= 10) {
+        return { amount, unit: "pcs" };
+      }
+    }
+
     return null;
   }
 
@@ -42,6 +58,7 @@
       case "g": return { value: amount / 1000, label: "kg" };
       case "l": return { value: amount, label: "l" };
       case "ml": return { value: amount / 1000, label: "l" };
+      case "pcs": return { value: amount, label: "ks", perPiece: true };
       default: return null;
     }
   }
@@ -53,9 +70,17 @@
     const perUnit = price / base.value;
     if (!Number.isFinite(perUnit) || perUnit <= 0) return null;
 
-    const text = perUnit < 100
-      ? `${perUnit.toFixed(2).replace(".", ",")} \u20ac/1 ${base.label}`
-      : `${Math.round(perUnit).toLocaleString("sk-SK")} \u20ac/1 ${base.label}`;
+    let text;
+    if (base.perPiece) {
+      const cents = perUnit * 100;
+      text = cents < 100
+        ? `${cents.toFixed(1).replace(".", ",")} ct/ks (${Math.round(base.value)} ks)`
+        : `${perUnit.toFixed(2).replace(".", ",")} \u20ac/ks (${Math.round(base.value)} ks)`;
+    } else {
+      text = perUnit < 100
+        ? `${perUnit.toFixed(2).replace(".", ",")} \u20ac/1 ${base.label}`
+        : `${Math.round(perUnit).toLocaleString("sk-SK")} \u20ac/1 ${base.label}`;
+    }
 
     return { value: perUnit, text };
   }
@@ -166,23 +191,37 @@
       "[class*='price' i], [class*='Price'], [data-testid*='price' i]"
     );
 
+    let firstMatch = null;
+
     for (const el of priceEls) {
       const text = el.textContent;
       if (!text.includes("\u20ac")) continue;
-      if (/\/1\s*(kg|l|ks)/.test(text)) continue;
+      if (/\/1?\s*(kg|l|ks|g|ml)\b/.test(text)) continue;
 
       const price = extractFirstPrice(text);
-      if (price) return { price, element: el };
+      if (!price) continue;
+
+      const isPrimary = /price-box__price|c2|prc|our-price/i.test(el.className || "");
+      if (isPrimary) return { price, element: el };
+
+      if (!firstMatch) firstMatch = { price, element: el };
     }
+
+    if (firstMatch) return firstMatch;
 
     const fallbackPrice = extractFirstPrice(card.textContent);
     return fallbackPrice ? { price: fallbackPrice, element: null } : null;
+  }
+
+  function hasExistingUnitPrice(card) {
+    return /\d+[.,]\d+\s*€\s*\/\s*1?\s*(kg|l|ks|g|ml)\b/i.test(card.textContent);
   }
 
   function processCard(card) {
     card.setAttribute(PROCESSED_ATTR, "");
 
     if (card.querySelector(`[${UNIT_PRICE_ATTR}]`)) return;
+    if (hasExistingUnitPrice(card)) return;
 
     const title = getCardTitle(card);
     const desc = getCardDescription(card);
@@ -216,23 +255,49 @@
     return Boolean(document.querySelector(".price-detail, #detailItem, [data-testid='detailItem']"));
   }
 
-  function processDetailPage() {
-    if (document.querySelector(`[${UNIT_PRICE_ATTR}]`)) return;
+  function getDetailPrice() {
+    const PRICE_SELECTORS = [
+      '.price-box__price',
+      '[data-testid="price-primary"] .price-box__price',
+      '.ads-pb--big [data-slot="pb-inner"]',
+      '.js-price-box .prc'
+    ];
 
-    const title = document.querySelector("#h1c h1, #h1c > h1, h1")?.textContent?.trim() ?? "";
-    const desc = document.querySelector(
-      ".nameextc, [class*='nameExt'], [data-testid='productDescription'], .shortDesc"
-    )?.textContent?.trim() ?? "";
-
-    const quantity = extractQuantity(title) || extractQuantity(desc);
-    if (!quantity) return;
+    for (const selector of PRICE_SELECTORS) {
+      const el = document.querySelector(selector);
+      if (el) {
+        const price = extractFirstPrice(el.textContent);
+        if (price) return price;
+      }
+    }
 
     const priceArea = document.querySelector(
       "[data-testid='price-primary'], .price-detail__price-box-wrapper, .price-detail, .pricenormal"
     );
-    if (!priceArea) return;
+    if (!priceArea) return null;
 
-    const price = extractFirstPrice(priceArea.textContent);
+    for (const child of priceArea.children) {
+      if (child.querySelector(`[${UNIT_PRICE_ATTR}]`)) continue;
+      const price = extractFirstPrice(child.textContent);
+      if (price) return price;
+    }
+
+    return null;
+  }
+
+  function processDetailPage() {
+    if (document.querySelector(`[${UNIT_PRICE_ATTR}]`)) return;
+
+    const title = document.querySelector("#h1c h1, #h1c > h1, h1")?.textContent?.trim() ?? "";
+    const descEl = document.querySelector(
+      ".nameextc, [class*='nameExt'], [data-testid='productDescription'], .shortDesc, #visual-params, [class*='parameters']"
+    );
+    const desc = descEl?.textContent?.trim() ?? "";
+
+    const quantity = extractQuantity(title) || extractQuantity(desc);
+    if (!quantity) return;
+
+    const price = getDetailPrice();
     if (!price) return;
 
     const unitPrice = computeUnitPrice(price, quantity);
@@ -242,21 +307,26 @@
     label.style.fontSize = "14px";
     label.style.padding = "2px 8px";
 
-    const secondaryPrice = priceArea.querySelector(
+    const placementArea = document.querySelector(
+      "[data-testid='price-primary'], .price-detail__price-box-wrapper, .price-detail, .pricenormal"
+    );
+    if (!placementArea) return;
+
+    const secondaryPrice = placementArea.querySelector(
       ".js-secondary-price, [class*='secondary-price'], [class*='secondaryPrice']"
     );
 
     if (secondaryPrice) {
       secondaryPrice.replaceWith(label);
     } else {
-      const priceEl = priceArea.querySelector(
+      const priceEl = placementArea.querySelector(
         ".price-box__price, [class*='priceNormal'], .prc, [class*='price-box']"
       );
-      const target = priceEl ?? priceArea.firstElementChild;
+      const target = priceEl ?? placementArea.firstElementChild;
       if (target) {
         target.after(label);
       } else {
-        priceArea.prepend(label);
+        placementArea.prepend(label);
       }
     }
   }

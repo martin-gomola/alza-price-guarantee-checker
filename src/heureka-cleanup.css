@@ -1,0 +1,17 @@
+html:not(.alza-checker-heureka-no-cleanup) .c-banner,
+html:not(.alza-checker-heureka-no-cleanup) [class*="c-banner"],
+html:not(.alza-checker-heureka-no-cleanup) [class*="advert"],
+html:not(.alza-checker-heureka-no-cleanup) [class*="sponsored"],
+html:not(.alza-checker-heureka-no-cleanup) [id*="banner"],
+html:not(.alza-checker-heureka-no-cleanup) [data-dot="ad"],
+html:not(.alza-checker-heureka-no-cleanup) [data-dot="visual_ad"],
+html:not(.alza-checker-heureka-no-cleanup) .e-visual-ad,
+html:not(.alza-checker-heureka-no-cleanup) .c-visual-ad,
+html:not(.alza-checker-heureka-no-cleanup) .l-bottom-banner-section,
+html:not(.alza-checker-heureka-no-cleanup) .c-tips-slider,
+html:not(.alza-checker-heureka-no-cleanup) [id*="google_ads"],
+html:not(.alza-checker-heureka-no-cleanup) [id*="gar-wallpaper"],
+html:not(.alza-checker-heureka-no-cleanup) [class*="multi-format-container"],
+html:not(.alza-checker-heureka-no-cleanup) .c-slider-products__wrapper[data-testid="Section-root"] {
+  display: none !important;
+}

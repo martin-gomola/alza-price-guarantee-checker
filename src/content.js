@@ -2,7 +2,7 @@
   const shared = window.AlzaCheckerShared;
   const settingsApi = window.AlzaCheckerSettings;
   const CLEANUP_STYLE_ID = "alza-checker-cleanup-style";
-  const CLEANUP_CSS = `
+  const CLEANUP_UNDO_CSS = `
     [data-testid="component-alternativePricingModule"],
     [data-testid="alternative-pricing-container"],
     [data-testid="alternative-pricing-item"],
@@ -20,8 +20,10 @@
     [class*="internalBanner"],
     [data-testid="footerUspList"],
     [data-testid="footerAppBanner"],
-    [data-testid="component-footer"] {
-      display: none !important;
+    [data-testid="component-footer"],
+    [data-testid="component-brandingEars"],
+    [class*="brandingEars"] {
+      display: revert !important;
     }
   `;
 
@@ -33,7 +35,8 @@
     isExpanded: false,
     shops: [],
     results: [],
-    isRunning: false
+    isRunning: false,
+    priceVerificationEnabled: true
   };
   const FETCH_TIMEOUT_MS = 10000;
   const SELECTORS = {
@@ -65,7 +68,7 @@
   function setUiCleanupEnabled(isEnabled) {
     const existingStyle = document.getElementById(CLEANUP_STYLE_ID);
 
-    if (!isEnabled) {
+    if (isEnabled) {
       existingStyle?.remove();
       return;
     }
@@ -76,17 +79,21 @@
 
     const style = document.createElement("style");
     style.id = CLEANUP_STYLE_ID;
-    style.textContent = CLEANUP_CSS;
+    style.textContent = CLEANUP_UNDO_CSS;
     document.documentElement.append(style);
   }
 
   function listenForSettingsChanges() {
     window.chrome?.storage?.onChanged?.addListener((changes, areaName) => {
-      if (areaName !== "local" || !changes.uiCleanupEnabled) {
-        return;
+      if (areaName !== "local") return;
+
+      if (changes.uiCleanupEnabled) {
+        setUiCleanupEnabled(changes.uiCleanupEnabled.newValue !== false);
       }
 
-      setUiCleanupEnabled(changes.uiCleanupEnabled.newValue !== false);
+      if (changes.priceVerificationEnabled) {
+        state.priceVerificationEnabled = changes.priceVerificationEnabled.newValue !== false;
+      }
     });
   }
 
@@ -393,8 +400,13 @@
   }
 
   const VERIFY_PRICE_DOMAINS = new Set([
+    "4kids.sk",
     "abc-zoo.sk",
+    "alltoys.sk",
+    "benulekaren.sk",
     "decathlon.sk",
+    "dracik.sk",
+    "drmax.sk",
     "heureka.sk",
     "hudysport.sk",
     "istores.sk",
@@ -403,10 +415,12 @@
     "nay.sk",
     "petcenter.sk",
     "planeo.sk",
+    "pompo.sk",
     "profizoo.sk",
     "smarty.sk",
     "spokojnypes.sk",
-    "superzoo.sk"
+    "superzoo.sk",
+    "tetadrogerie.sk"
   ]);
 
   async function verifyPriceFromDetailPage(candidate, productName) {
@@ -458,7 +472,7 @@
       if (candidates.length > 0) {
         let bestCandidate = candidates[0];
 
-        if (VERIFY_PRICE_DOMAINS.has(domain) && bestCandidate.url) {
+        if (state.priceVerificationEnabled && VERIFY_PRICE_DOMAINS.has(domain) && bestCandidate.url) {
           bestCandidate = await verifyPriceFromDetailPage(bestCandidate, productName);
         }
 
@@ -585,8 +599,38 @@
   if (settingsApi) {
     const settings = await settingsApi.getSettings();
     setUiCleanupEnabled(settings.uiCleanupEnabled);
+    state.priceVerificationEnabled = settings.priceVerificationEnabled;
     listenForSettingsChanges();
   }
 
-  insertPanel(createPanel());
+  const isProductPage = Boolean(
+    document.querySelector(SELECTORS.insertionPoint) ||
+    document.querySelector(SELECTORS.buyActions) ||
+    document.querySelector(SELECTORS.guaranteeTrigger)
+  );
+
+  if (isProductPage) {
+    insertPanel(createPanel());
+    addCopyTitleButton();
+  }
+
+  function addCopyTitleButton() {
+    const h1 = document.querySelector(SELECTORS.h1);
+    if (!h1 || h1.querySelector(".alza-checker-copy-btn")) return;
+
+    const btn = el("button", { type: "button", className: "alza-checker-copy-btn", title: "Kopírovať názov" });
+    btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>`;
+    btn.addEventListener("click", async () => {
+      const name = getProductName();
+      if (!name) return;
+      await navigator.clipboard.writeText(name);
+      btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>`;
+      setTimeout(() => {
+        btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>`;
+      }, 1500);
+    });
+
+    h1.style.position = "relative";
+    h1.append(btn);
+  }
 })();

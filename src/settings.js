@@ -1,11 +1,17 @@
 (function attachSettings(root) {
   const DEFAULT_SETTINGS = {
-    uiCleanupEnabled: true
+    uiCleanupEnabled: true,
+    unitPriceEnabled: true,
+    priceVerificationEnabled: true,
+    heurekaCleanupEnabled: true
   };
 
   function normalizeSettings(value) {
     return {
-      uiCleanupEnabled: value?.uiCleanupEnabled !== false
+      uiCleanupEnabled: value?.uiCleanupEnabled !== false,
+      unitPriceEnabled: value?.unitPriceEnabled !== false,
+      priceVerificationEnabled: value?.priceVerificationEnabled !== false,
+      heurekaCleanupEnabled: value?.heurekaCleanupEnabled !== false
     };
   }
 

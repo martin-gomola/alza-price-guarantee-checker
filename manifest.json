@@ -4,8 +4,18 @@
   "description": "Compares Alza.sk product prices against shops supported by Garancia najlepsej ceny.",
   "version": "0.1.0",
   "permissions": [
-    "storage"
+    "storage",
+    "declarativeNetRequest"
   ],
+  "declarative_net_request": {
+    "rule_resources": [
+      {
+        "id": "ad_blocking",
+        "enabled": true,
+        "path": "src/rules.json"
+      }
+    ]
+  },
   "host_permissions": [
     "<all_urls>"
   ],
@@ -13,6 +23,16 @@
     "service_worker": "src/background.js"
   },
   "content_scripts": [
+    {
+      "matches": [
+        "https://www.alza.sk/*",
+        "https://alza.sk/*"
+      ],
+      "css": [
+        "src/alza-cleanup.css"
+      ],
+      "run_at": "document_start"
+    },
     {
       "matches": [
         "https://www.alza.sk/*",
@@ -34,12 +54,26 @@
         "https://alza.sk/*"
       ],
       "js": [
+        "src/settings.js",
         "src/unitprice.js"
       ],
       "css": [
         "src/unitprice.css"
       ],
       "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://*.heureka.sk/*"
+      ],
+      "js": [
+        "src/settings.js",
+        "src/heureka-cleanup.js"
+      ],
+      "css": [
+        "src/heureka-cleanup.css"
+      ],
+      "run_at": "document_start"
     }
   ],
   "action": {

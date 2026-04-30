@@ -25,19 +25,28 @@
       },
       "https://abc-zoo.sk/modules/luigiboxapi/search.php?search_query={query}&orderby=position&orderway=desc"
     ],
+    "4kids.sk": ["https://www.4kids.sk/vyhladavanie/?q={queryPlus}"],
+    "alltoys.sk": ["https://www.alltoys.sk/vyhladavanie/?q={queryPlus}"],
+    "benulekaren.sk": ["https://www.benulekaren.sk/vyhladavanie?q={queryPlus}"],
     "decathlon.sk": ["https://www.decathlon.sk/search/?query={query}"],
+    "dracik.sk": ["https://www.dracik.sk/search/?q={queryPlus}"],
+    "drmax.sk": ["https://www.drmax.sk/search?q={queryPlus}"],
     "heureka.sk": ["https://www.heureka.sk/?h%5Bfraze%5D={queryPlus}"],
+    "hornbach.sk": ["https://www.hornbach.sk/s/{query}?isInitialRequest=false"],
     "hudysport.sk": ["https://www.hudysport.sk/vyhledavani?q={query}"],
     "istores.sk": ["https://www.istores.sk/vyhladavanie?q={queryPlus}"],
     "istyle.sk": ["https://www.istyle.sk/search?q={query}&type=product"],
     "kytary.sk": ["https://kytary.sk/Search/?term={query}&kw={query}"],
     "nay.sk": ["https://www.nay.sk/vyhladavanie?q={query}"],
+    "obi.sk": ["https://www.obi.sk/search/{queryPlus}"],
     "planeo.sk": ["https://www.planeo.sk/vyhladavanie$a1013-search?query={queryPlus}"],
+    "pompo.sk": ["https://www.pompo.sk/vyhladavanie?q={queryPlus}"],
     "profizoo.sk": ["/vyhladavanie?search={query}", "/hladani?q={query}", "/search?q={query}"],
     "petcenter.sk": ["https://www.petcenter.sk/vyhladavanie/?string={query}"],
     "spokojnypes.sk": ["https://www.spokojnypes.sk/vyhladavanie/?q={query}", "https://www.spokojnypes.sk/search/?q={query}"],
     "smarty.sk": ["https://www.smarty.sk/Vyhladavanie?query={query}"],
-    "superzoo.sk": ["https://www.superzoo.sk/hladanie/?query={query}"]
+    "superzoo.sk": ["https://www.superzoo.sk/hladanie/?query={query}"],
+    "tetadrogerie.sk": ["https://www.tetadrogerie.sk/produkty/?hladaj={queryPlus}"]
   };
   const DEFAULT_SEARCH_SHOPS = ["heureka.sk"];
 
@@ -207,17 +216,23 @@
     const normalizedText = String(text || "")
       .replace(/&(?:#46|period);/gi, ".")
       .replace(/\\u002e/gi, ".")
-      .replace(/\s*\.\s*/g, ".")
+      .replace(/([a-z0-9])\s+\.\s*([a-z])/gi, "$1.$2")
+      .replace(/([a-z0-9])\s*\.\s+([a-z])/gi, "$1.$2")
       .toLowerCase()
       .replace(/(\.sk)(?=[a-z0-9-]+\.)/g, "$1 ");
     const matches = normalizedText.matchAll(/\b(?:[a-z0-9-]+\.)+[a-z]{2,}\b/g);
 
     for (const match of matches) {
-      const domain = normalizeShopDomain(match[0].replace(/^www\./, ""));
+      let domain = match[0].replace(/^www\./, "");
+      if (!domain.endsWith(".sk")) continue;
 
-      if (ignored.has(domain) || !domain.endsWith(".sk")) {
-        continue;
+      const parts = domain.split(".");
+      if (parts.length > 2) {
+        domain = parts.slice(-2).join(".");
       }
+
+      domain = normalizeShopDomain(domain);
+      if (ignored.has(domain)) continue;
 
       domains.add(domain);
     }
@@ -225,13 +240,13 @@
     return [...domains].sort();
   }
 
-  const DOMAIN_ALIASES = new Map([
-    ["nnay.sk", "nay.sk"],
-    ["ndecathlon.sk", "decathlon.sk"]
-  ]);
-
   function normalizeShopDomain(domain) {
-    return DOMAIN_ALIASES.get(domain) ?? domain;
+    if (SEARCH_TEMPLATES[domain]) return domain;
+
+    const stripped = domain.replace(/^[a-z]/, "");
+    if (SEARCH_TEMPLATES[stripped]) return stripped;
+
+    return domain;
   }
 
   function cleanProductName(value) {
@@ -261,16 +276,20 @@
 
   function buildSearchQueries(productName) {
     const cleaned = cleanProductName(productName);
+    const withoutQuantity = cleaned
+      .replace(/\s+\d+(?:[.,]\d+)?\s*(g|kg|ml|l|ks|mm|cm|m)\b.*$/i, "")
+      .trim();
 
     return uniqueValues([
       cleaned,
       cleaned.replace(/\s+[–—-]\s+/g, " -- "),
-      cleaned.replace(/\s+[–—-]\s+/g, " ")
+      cleaned.replace(/\s+[–—-]\s+/g, " "),
+      withoutQuantity
     ]);
   }
 
   function mergeDefaultSearchShops(shops) {
-    return uniqueValues([...(shops || []).map(normalizeShopDomain), ...DEFAULT_SEARCH_SHOPS]);
+    return uniqueValues([...DEFAULT_SEARCH_SHOPS, ...(shops || []).map(normalizeShopDomain)]);
   }
 
   function applyQueryTemplate(template, domain, query) {
@@ -354,6 +373,7 @@
       "[data-product-price]",
       "[data-prodprice]",
       'meta[property="product:price:amount"]',
+      'meta[property="og:price:amount"]',
       '[itemprop="lowPrice"]',
       '[itemprop="price"]'
     ];
@@ -869,6 +889,23 @@
     return normalizeWhitespace(String(value || "").replace(/<[^>]*>/g, " "));
   }
 
+  function extractMetaPrice(html) {
+    const metaPricePatterns = [
+      /<meta\b[^>]*property=["'](?:og:price:amount|product:price:amount)["'][^>]*>/gi,
+      /<meta\b[^>]*name=["'](?:price|twitter:data1)["'][^>]*>/gi
+    ];
+
+    for (const pattern of metaPricePatterns) {
+      let match;
+      while ((match = pattern.exec(html))) {
+        const price = parsePriceValue(getHtmlAttribute(match[0], "content"));
+        if (price) return price;
+      }
+    }
+
+    return null;
+  }
+
   function extractPageProductCandidateFallback(html, baseUrl, queryTokens) {
     const h1 = String(html || "").match(/<h1\b[^>]*>([\s\S]*?)<\/h1>/i);
     const titleTag = String(html || "").match(/<title\b[^>]*>([\s\S]*?)<\/title>/i);
@@ -888,7 +925,7 @@
       return null;
     }
 
-    const price = parseProductPrice(stripHtml(html));
+    const price = extractMetaPrice(html) || parseProductPrice(stripHtml(html));
 
     if (!price) {
       return null;
