@@ -121,7 +121,7 @@
       if (!fallback || fallback === document.body) return null;
 
       const links = fallback.querySelectorAll("a[href]");
-      const hasTitle = Array.from(links).some(a => a.textContent.trim().length > 10);
+      const hasTitle = [...links].some(a => a.textContent.trim().length > 10);
       const hasPrice = fallback.textContent.includes("\u20ac");
       if (hasTitle && hasPrice) return fallback;
     }
@@ -199,9 +199,9 @@
     const label = createLabel(unitPrice);
 
     if (priceInfo.element) {
-      priceInfo.element.parentElement.insertBefore(label, priceInfo.element.nextSibling);
+      priceInfo.element.after(label);
     } else {
-      card.appendChild(label);
+      card.append(label);
     }
   }
 
@@ -219,13 +219,10 @@
   function processDetailPage() {
     if (document.querySelector(`[${UNIT_PRICE_ATTR}]`)) return;
 
-    const titleEl = document.querySelector("#h1c h1, #h1c > h1, h1");
-    const title = titleEl ? titleEl.textContent.trim() : "";
-
-    const descEl = document.querySelector(
+    const title = document.querySelector("#h1c h1, #h1c > h1, h1")?.textContent?.trim() ?? "";
+    const desc = document.querySelector(
       ".nameextc, [class*='nameExt'], [data-testid='productDescription'], .shortDesc"
-    );
-    const desc = descEl ? descEl.textContent.trim() : "";
+    )?.textContent?.trim() ?? "";
 
     const quantity = extractQuantity(title) || extractQuantity(desc);
     if (!quantity) return;
@@ -255,9 +252,9 @@
       const priceEl = priceArea.querySelector(
         ".price-box__price, [class*='priceNormal'], .prc, [class*='price-box']"
       );
-      const insertAfter = priceEl || priceArea.firstElementChild;
-      if (insertAfter) {
-        insertAfter.parentElement.insertBefore(label, insertAfter.nextSibling);
+      const target = priceEl ?? priceArea.firstElementChild;
+      if (target) {
+        target.after(label);
       } else {
         priceArea.prepend(label);
       }

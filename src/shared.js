@@ -107,7 +107,7 @@
       expanded.push(...(TOKEN_SYNONYMS[token] || []));
     }
 
-    return Array.from(new Set(expanded));
+    return [...new Set(expanded)];
   }
 
   function parseEuroPrices(text) {
@@ -222,19 +222,16 @@
       domains.add(domain);
     }
 
-    return Array.from(domains).sort();
+    return [...domains].sort();
   }
 
+  const DOMAIN_ALIASES = new Map([
+    ["nnay.sk", "nay.sk"],
+    ["ndecathlon.sk", "decathlon.sk"]
+  ]);
+
   function normalizeShopDomain(domain) {
-    if (domain === "nnay.sk") {
-      return "nay.sk";
-    }
-
-    if (domain === "ndecathlon.sk") {
-      return "decathlon.sk";
-    }
-
-    return domain;
+    return DOMAIN_ALIASES.get(domain) ?? domain;
   }
 
   function cleanProductName(value) {
@@ -345,11 +342,11 @@
   }
 
   function getElementText(element) {
-    return normalizeWhitespace(element ? element.textContent || "" : "");
+    return normalizeWhitespace(element?.textContent ?? "");
   }
 
   function parseElementPrice(element) {
-    if (!element || !element.querySelectorAll) {
+    if (!element?.querySelectorAll) {
       return null;
     }
 
@@ -361,7 +358,7 @@
       '[itemprop="price"]'
     ];
 
-    for (const candidate of Array.from(element.querySelectorAll(selectors.join(",")))) {
+    for (const candidate of element.querySelectorAll(selectors.join(","))) {
       const value = (
         candidate.getAttribute("data-product-price") ||
         candidate.getAttribute("data-prodprice") ||
@@ -401,31 +398,20 @@
     return firstPricedAncestor || anchor.parentElement || anchor;
   }
 
-  function isBlockedProductUrl(url) {
-    const lowerUrl = String(url || "").trim().toLowerCase();
+  const BLOCKED_URL_PREFIXES = ["javascript:", "data:", "blob:", "mailto:", "tel:"];
+  const BLOCKED_URL_SUBSTRINGS = [
+    "/exit-click", "exit-click-web",
+    "/vyhladavanie", "/vyhladavani", "/hladanie", "/search",
+    "/bazar/", "/modules/luigiboxapi/search.php",
+    "h%5bfraze%5d=", "h[fraze]=",
+    "/cart", "/kosik", "/action/cart", "add_to_cart", "addcartitem"
+  ];
 
-    return (
-      lowerUrl.startsWith("javascript:") ||
-      lowerUrl.startsWith("data:") ||
-      lowerUrl.startsWith("blob:") ||
-      lowerUrl.includes("/exit-click") ||
-      lowerUrl.includes("exit-click-web") ||
-      lowerUrl.includes("/vyhladavanie") ||
-      lowerUrl.includes("/vyhladavani") ||
-      lowerUrl.includes("/hladanie") ||
-      lowerUrl.includes("/search") ||
-      lowerUrl.includes("/bazar/") ||
-      lowerUrl.includes("/modules/luigiboxapi/search.php") ||
-      lowerUrl.includes("h%5bfraze%5d=") ||
-      lowerUrl.includes("h[fraze]=") ||
-      lowerUrl.includes("/cart") ||
-      lowerUrl.includes("/kosik") ||
-      lowerUrl.includes("/action/cart") ||
-      lowerUrl.includes("add_to_cart") ||
-      lowerUrl.includes("addcartitem") ||
-      lowerUrl.startsWith("mailto:") ||
-      lowerUrl.startsWith("tel:")
-    );
+  function isBlockedProductUrl(url) {
+    const lower = String(url || "").trim().toLowerCase();
+
+    return BLOCKED_URL_PREFIXES.some((p) => lower.startsWith(p))
+      || BLOCKED_URL_SUBSTRINGS.some((s) => lower.includes(s));
   }
 
   function resolveUrl(href, baseUrl) {
@@ -448,7 +434,7 @@
       return ownUrl;
     }
 
-    for (const candidateAnchor of Array.from(container.querySelectorAll("a[href]"))) {
+    for (const candidateAnchor of container.querySelectorAll("a[href]")) {
       const href = candidateAnchor.getAttribute("href");
 
       if (!href || href.startsWith("#") || href.startsWith("javascript:")) {
@@ -556,7 +542,7 @@
       candidates.push(pageCandidate);
     }
 
-    for (const anchor of Array.from(document.querySelectorAll("a[href]"))) {
+    for (const anchor of document.querySelectorAll("a[href]")) {
       const href = anchor.getAttribute("href");
 
       if (!href || href.startsWith("#") || href.startsWith("javascript:")) {
@@ -888,8 +874,8 @@
     const titleTag = String(html || "").match(/<title\b[^>]*>([\s\S]*?)<\/title>/i);
     const canonical = String(html || "").match(/<link\b[^>]*rel=["']canonical["'][^>]*>/i);
     const ogUrl = String(html || "").match(/<meta\b[^>]*property=["']og:url["'][^>]*>/i);
-    const title = stripHtml(h1 ? h1[1] : titleTag ? titleTag[1] : "");
-    const href = getHtmlAttribute(canonical ? canonical[0] : "", "href") || getHtmlAttribute(ogUrl ? ogUrl[0] : "", "content") || baseUrl;
+    const title = stripHtml(h1?.[1] ?? titleTag?.[1] ?? "");
+    const href = getHtmlAttribute(canonical?.[0] ?? "", "href") || getHtmlAttribute(ogUrl?.[0] ?? "", "content") || baseUrl;
     const url = resolveUrl(href, baseUrl);
 
     if (!title || !url || isBlockedProductUrl(url) || !hasRequiredQueryTokens(title, queryTokens) || hasDisallowedAccessoryTitle(title, queryTokens)) {

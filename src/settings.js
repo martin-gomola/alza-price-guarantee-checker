@@ -9,31 +9,21 @@
     };
   }
 
-  function getSettings() {
+  async function getSettings() {
     if (!root.chrome?.storage?.local) {
-      return Promise.resolve({ ...DEFAULT_SETTINGS });
+      return { ...DEFAULT_SETTINGS };
     }
 
-    return new Promise((resolve) => {
-      root.chrome.storage.local.get(DEFAULT_SETTINGS, (settings) => {
-        if (root.chrome.runtime?.lastError) {
-          resolve({ ...DEFAULT_SETTINGS });
-          return;
-        }
-
-        resolve(normalizeSettings(settings));
-      });
-    });
+    try {
+      const stored = await root.chrome.storage.local.get(DEFAULT_SETTINGS);
+      return normalizeSettings(stored);
+    } catch {
+      return { ...DEFAULT_SETTINGS };
+    }
   }
 
-  function saveSettings(settings) {
-    if (!root.chrome?.storage?.local) {
-      return Promise.resolve();
-    }
-
-    return new Promise((resolve) => {
-      root.chrome.storage.local.set(normalizeSettings(settings), resolve);
-    });
+  async function saveSettings(settings) {
+    await root.chrome?.storage?.local?.set(normalizeSettings(settings));
   }
 
   root.AlzaCheckerSettings = {

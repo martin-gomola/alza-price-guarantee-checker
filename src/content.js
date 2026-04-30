@@ -110,10 +110,10 @@
   function getGuaranteeApiUrls() {
     const urls = new Set();
 
-    for (const element of Array.from(document.querySelectorAll("[data-api-url]"))) {
+    for (const element of document.querySelectorAll("[data-api-url]")) {
       const value = element.getAttribute("data-api-url");
 
-      if (value && value.toLowerCase().includes("priceguarantee")) {
+      if (value?.toLowerCase().includes("priceguarantee")) {
         const url = new URL(value, window.location.href).href;
         urls.add(url);
 
@@ -123,7 +123,7 @@
       }
     }
 
-    return Array.from(urls).sort((a, b) => {
+    return [...urls].sort((a, b) => {
       const aIsDialog = a.includes("/dialog");
       const bIsDialog = b.includes("/dialog");
 
@@ -152,44 +152,43 @@
     findInsertionPoint().append(panel);
   }
 
-  function fetchText(url) {
+  async function fetchText(url) {
     const target = new URL(url, window.location.href);
     const isAlzaApi = target.hostname.endsWith("alza.sk") && target.pathname.includes("/priceGuarantee/");
 
-    if (isAlzaApi) {
-      const controller = new AbortController();
-      const timeoutId = window.setTimeout(() => {
-        controller.abort();
-      }, FETCH_TIMEOUT_MS);
-
-      return fetch(target.href, {
-        credentials: "include",
-        signal: controller.signal,
-        headers: {
-          "accept": "text/html,application/json,*/*;q=0.8"
-        }
-      })
-        .then(async (response) => ({
-          ok: response.ok,
-          status: response.status,
-          url: response.url,
-          text: await response.text()
-        }))
-        .catch((error) => ({
-          ok: false,
-          status: 0,
-          url: target.href,
-          error: error.name === "AbortError" ? "Request timed out" : error.message
-        }))
-        .finally(() => {
-          window.clearTimeout(timeoutId);
-        });
+    if (!isAlzaApi) {
+      return chrome.runtime.sendMessage({
+        type: "alza-checker:fetch-text",
+        url: target.href
+      });
     }
 
-    return chrome.runtime.sendMessage({
-      type: "alza-checker:fetch-text",
-      url: target.href
-    });
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+
+    try {
+      const response = await fetch(target.href, {
+        credentials: "include",
+        signal: controller.signal,
+        headers: { accept: "text/html,application/json,*/*;q=0.8" }
+      });
+
+      return {
+        ok: response.ok,
+        status: response.status,
+        url: response.url,
+        text: await response.text()
+      };
+    } catch (error) {
+      return {
+        ok: false,
+        status: 0,
+        url: target.href,
+        error: error.name === "AbortError" ? "Request timed out" : error.message
+      };
+    } finally {
+      window.clearTimeout(timeoutId);
+    }
   }
 
   function fetchSearchRequest(request) {
@@ -202,7 +201,7 @@
   }
 
   function getVisibleSupportedShops() {
-    const roots = Array.from(document.querySelectorAll(SELECTORS.guaranteeRoots))
+    const roots = [...document.querySelectorAll(SELECTORS.guaranteeRoots)]
       .filter((element) => !element.closest("#alza-checker-root"));
     const domains = new Set();
 
@@ -212,7 +211,7 @@
       }
     }
 
-    for (const element of Array.from(document.querySelectorAll(SELECTORS.optionItems))) {
+    for (const element of document.querySelectorAll(SELECTORS.optionItems)) {
       if (element.closest("#alza-checker-root")) {
         continue;
       }
@@ -225,7 +224,7 @@
       }
     }
 
-    return Array.from(domains).sort();
+    return [...domains].sort();
   }
 
   function wait(milliseconds) {
@@ -393,7 +392,22 @@
     }
   }
 
-  const VERIFY_PRICE_DOMAINS = new Set(["heureka.sk"]);
+  const VERIFY_PRICE_DOMAINS = new Set([
+    "abc-zoo.sk",
+    "decathlon.sk",
+    "heureka.sk",
+    "hudysport.sk",
+    "istores.sk",
+    "istyle.sk",
+    "kytary.sk",
+    "nay.sk",
+    "petcenter.sk",
+    "planeo.sk",
+    "profizoo.sk",
+    "smarty.sk",
+    "spokojnypes.sk",
+    "superzoo.sk"
+  ]);
 
   async function verifyPriceFromDetailPage(candidate, productName) {
     if (!candidate.url || shared.isBlockedProductUrl(candidate.url)) {
@@ -410,14 +424,14 @@
       return candidate;
     }
 
-    const detailCandidates = shared.extractProductCandidates(response.text, response.url || candidate.url, productName);
+    const [detail] = shared.extractProductCandidates(response.text, response.url || candidate.url, productName);
 
-    if (detailCandidates.length > 0 && detailCandidates[0].price) {
+    if (detail?.price) {
       return {
         ...candidate,
-        title: detailCandidates[0].title || candidate.title,
-        price: detailCandidates[0].price,
-        url: detailCandidates[0].url || candidate.url
+        title: detail.title || candidate.title,
+        price: detail.price,
+        url: detail.url || candidate.url
       };
     }
 
@@ -535,49 +549,28 @@
     }
   }
 
+  function el(tag, props = {}) {
+    const element = document.createElement(tag);
+    Object.assign(element, props);
+    return element;
+  }
+
   function createPanel() {
-    const root = document.createElement("section");
-    root.id = "alza-checker-root";
-
-    const title = document.createElement("div");
-    title.className = "alza-checker-title";
-    title.textContent = "Kontrola najlepsej ceny";
-
-    const meta = document.createElement("div");
-    meta.className = "alza-checker-meta";
     const price = getAlzaPrice();
     const productName = getProductName();
-    meta.textContent = price ? `Alza: ${price.text}` : "Cena Alza: nezistena";
 
-    const query = document.createElement("div");
-    query.className = "alza-checker-query";
-    query.textContent = productName ? `Hladam: ${productName}` : "Nazov produktu: nezisteny";
+    const root = el("section", { id: "alza-checker-root" });
+    const title = el("div", { className: "alza-checker-title", textContent: "Kontrola najlepsej ceny" });
+    const meta = el("div", { className: "alza-checker-meta", textContent: price ? `Alza: ${price.text}` : "Cena Alza: nezistena" });
+    const query = el("div", { className: "alza-checker-query", textContent: productName ? `Hladam: ${productName}` : "Nazov produktu: nezisteny" });
+    const status = el("div", { id: "alza-checker-status", className: "alza-checker-status", textContent: "Pripravene." });
+    const list = el("ul", { id: "alza-checker-results", className: "alza-checker-results" });
+    const summary = el("div", { id: "alza-checker-summary", className: "alza-checker-summary", hidden: true });
 
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = "alza-checker-button";
-    button.textContent = "Skontrolovat konkurenciu";
+    const button = el("button", { type: "button", className: "alza-checker-button", textContent: "Skontrolovat konkurenciu" });
     button.addEventListener("click", () => runCheck(button));
 
-    const status = document.createElement("div");
-    status.id = "alza-checker-status";
-    status.className = "alza-checker-status";
-    status.textContent = "Pripravene.";
-
-    const list = document.createElement("ul");
-    list.id = "alza-checker-results";
-    list.className = "alza-checker-results";
-
-    const summary = document.createElement("div");
-    summary.id = "alza-checker-summary";
-    summary.className = "alza-checker-summary";
-    summary.hidden = true;
-
-    const toggle = document.createElement("button");
-    toggle.id = "alza-checker-toggle";
-    toggle.type = "button";
-    toggle.className = "alza-checker-toggle";
-    toggle.hidden = true;
+    const toggle = el("button", { id: "alza-checker-toggle", type: "button", className: "alza-checker-toggle", hidden: true });
     toggle.addEventListener("click", () => {
       state.isExpanded = !state.isExpanded;
       renderToggle();
