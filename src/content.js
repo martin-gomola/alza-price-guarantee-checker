@@ -1,31 +1,6 @@
 (async function runAlzaChecker() {
   const shared = window.AlzaCheckerShared;
   const settingsApi = window.AlzaCheckerSettings;
-  const CLEANUP_STYLE_ID = "alza-checker-cleanup-style";
-  const CLEANUP_UNDO_CSS = `
-    [data-testid="component-alternativePricingModule"],
-    [data-testid="alternative-pricing-container"],
-    [data-testid="alternative-pricing-item"],
-    .alternativePricingModule,
-    .ads-pb--instalments-c,
-    [class*="ads-pb--instalments"],
-    .warranty-list-compact,
-    .warranty-list,
-    .accessoriesBlockNew,
-    .delivery-promo-container,
-    .delivery-promo,
-    .js-delivery-promo,
-    [data-type="AlzaBox"],
-    [data-testid="component-internalBanner"],
-    [class*="internalBanner"],
-    [data-testid="footerUspList"],
-    [data-testid="footerAppBanner"],
-    [data-testid="component-footer"],
-    [data-testid="component-brandingEars"],
-    [class*="brandingEars"] {
-      display: revert !important;
-    }
-  `;
 
   if (!shared || document.getElementById("alza-checker-root")) {
     return;
@@ -66,21 +41,7 @@
   };
 
   function setUiCleanupEnabled(isEnabled) {
-    const existingStyle = document.getElementById(CLEANUP_STYLE_ID);
-
-    if (isEnabled) {
-      existingStyle?.remove();
-      return;
-    }
-
-    if (existingStyle) {
-      return;
-    }
-
-    const style = document.createElement("style");
-    style.id = CLEANUP_STYLE_ID;
-    style.textContent = CLEANUP_UNDO_CSS;
-    document.documentElement.append(style);
+    document.documentElement.classList.toggle("alza-checker-no-cleanup", !isEnabled);
   }
 
   function listenForSettingsChanges() {
