@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="sk">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Nastavenia Alza Price Guarantee Checker</title>
+    <link rel="stylesheet" href="options.css">
+  </head>
+  <body>
+    <main class="settings">
+      <header class="settings__header">
+        <h1>Nastavenia Alza checkera</h1>
+        <p>Nastav, co rozsirenie meni na produktovych strankach Alzy.</p>
+      </header>
+
+      <section class="settings__group" aria-labelledby="ui-cleanup-title">
+        <label class="settings__toggle">
+          <span>
+            <strong id="ui-cleanup-title">Cistenie UI</strong>
+            <span>Skryje cenu na splatky, predlzenu zaruku a ponuky prislusenstva.</span>
+          </span>
+          <input id="ui-cleanup-enabled" type="checkbox">
+        </label>
+      </section>
+
+      <p id="status" class="settings__status" role="status"></p>
+    </main>
+
+    <script src="settings.js"></script>
+    <script src="options.js"></script>
+  </body>
+</html>

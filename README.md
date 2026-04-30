@@ -10,6 +10,10 @@ Unpacked Chrome extension for Alza.sk product pages. It reads the product name a
 4. Select this repository folder.
 5. Open an Alza.sk product page and click `Skontrolovat konkurenciu` in the injected panel.
 
+## Settings
+
+Click the extension icon, or open Extension options, to toggle UI cleanup. UI cleanup hides Alza instalment price blocks (`splatky`), warranty upsells, and accessory offers. It is enabled by default.
+
 ## Notes
 
 This is a generic first pass. Supported shops do not share one product API or one HTML layout, so the extension searches each supported shop and extracts the strongest price-like product match from the returned HTML. Rows that cannot be matched include a search link for manual checking.

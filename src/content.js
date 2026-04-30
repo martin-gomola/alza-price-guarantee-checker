@@ -1,5 +1,29 @@
-(function runAlzaChecker() {
+(async function runAlzaChecker() {
   const shared = window.AlzaCheckerShared;
+  const settingsApi = window.AlzaCheckerSettings;
+  const CLEANUP_STYLE_ID = "alza-checker-cleanup-style";
+  const CLEANUP_CSS = `
+    [data-testid="component-alternativePricingModule"],
+    [data-testid="alternative-pricing-container"],
+    [data-testid="alternative-pricing-item"],
+    .alternativePricingModule,
+    .ads-pb--instalments-c,
+    [class*="ads-pb--instalments"],
+    .warranty-list-compact,
+    .warranty-list,
+    .accessoriesBlockNew,
+    .delivery-promo-container,
+    .delivery-promo,
+    .js-delivery-promo,
+    [data-type="AlzaBox"],
+    [data-testid="component-internalBanner"],
+    [class*="internalBanner"],
+    [data-testid="footerUspList"],
+    [data-testid="footerAppBanner"],
+    [data-testid="component-footer"] {
+      display: none !important;
+    }
+  `;
 
   if (!shared || document.getElementById("alza-checker-root")) {
     return;
@@ -38,11 +62,47 @@
     upsellBlock: ".warranty-list-compact, .warranty-list, .accessoriesBlockNew"
   };
 
+  function setUiCleanupEnabled(isEnabled) {
+    const existingStyle = document.getElementById(CLEANUP_STYLE_ID);
+
+    if (!isEnabled) {
+      existingStyle?.remove();
+      return;
+    }
+
+    if (existingStyle) {
+      return;
+    }
+
+    const style = document.createElement("style");
+    style.id = CLEANUP_STYLE_ID;
+    style.textContent = CLEANUP_CSS;
+    document.documentElement.append(style);
+  }
+
+  function listenForSettingsChanges() {
+    window.chrome?.storage?.onChanged?.addListener((changes, areaName) => {
+      if (areaName !== "local" || !changes.uiCleanupEnabled) {
+        return;
+      }
+
+      setUiCleanupEnabled(changes.uiCleanupEnabled.newValue !== false);
+    });
+  }
+
   function getProductName() {
     return shared.cleanProductName(document.querySelector(SELECTORS.h1)?.textContent);
   }
 
   function getAlzaPrice() {
+    const mainPrice = document.querySelector(
+      '.price-box__price, [data-testid="price-primary"] .price-box__price, .ads-pb--big [data-slot="pb-inner"], .js-price-box .prc'
+    );
+    if (mainPrice) {
+      const price = shared.parseEuroPrice(mainPrice.textContent);
+      if (price) return price;
+    }
+
     const priceArea = document.querySelector(SELECTORS.priceArea);
     return shared.parseEuroPrice(priceArea?.textContent || document.body.textContent);
   }
@@ -265,7 +325,7 @@
       title.className = "alza-checker-summary-title";
 
       if (bestResult.url) {
-        title.append(createExternalLink(bestResult.url, `${bestResult.domain}: ${bestResult.title || "Produkt"}`));
+        title.append(createExternalLink(bestResult.url, `${bestResult.domain}: ${shared.decodeHtml(bestResult.title) || "Produkt"}`));
       } else {
         title.textContent = bestResult.domain;
       }
@@ -278,7 +338,7 @@
       return;
     }
 
-    summary.textContent = results.length > 0 ? "Zatial bez presnej zhody." : "Pripravene na kontrolu konkurencie.";
+    summary.textContent = results.length > 0 ? "Automaticke porovnanie nenaslo zhodu. Skontrolujte manualne." : "Pripravene na kontrolu konkurencie.";
   }
 
   function renderToggle() {
@@ -308,16 +368,23 @@
 
       const price = document.createElement("div");
       price.className = "alza-checker-price";
-      price.textContent = result.price ? result.price.text : "Nenajdene";
 
       const detail = document.createElement("div");
       detail.className = "alza-checker-detail";
 
-      if (result.url && result.price) {
-        detail.append(createExternalLink(result.url, result.title || "Produkt"));
-      } else if (result.searchUrl) {
-        detail.append(createExternalLink(result.searchUrl, "Otvorit vyhladavanie"));
+      if (result.state === "found" && result.price) {
+        price.textContent = result.price.text;
+        if (result.url) {
+          detail.append(createExternalLink(result.url, shared.decodeHtml(result.title) || "Produkt"));
+        }
+      } else if (result.state === "manual" && result.searchUrl) {
+        price.textContent = "";
+        const link = createExternalLink(result.searchUrl, `Skontrolovat na ${result.domain}`);
+        link.className = "alza-checker-search-btn";
+        detail.append(link);
       } else {
+        price.textContent = "";
+        detail.className = "alza-checker-detail alza-checker-detail--error";
         detail.textContent = result.message || "Nepodarilo sa nacitat obchod.";
       }
 
@@ -326,10 +393,42 @@
     }
   }
 
+  const VERIFY_PRICE_DOMAINS = new Set(["heureka.sk"]);
+
+  async function verifyPriceFromDetailPage(candidate, productName) {
+    if (!candidate.url || shared.isBlockedProductUrl(candidate.url)) {
+      return candidate;
+    }
+
+    const response = await fetchSearchRequest({
+      url: candidate.url,
+      displayUrl: candidate.url,
+      method: "GET"
+    });
+
+    if (!response.ok || !response.text) {
+      return candidate;
+    }
+
+    const detailCandidates = shared.extractProductCandidates(response.text, response.url || candidate.url, productName);
+
+    if (detailCandidates.length > 0 && detailCandidates[0].price) {
+      return {
+        ...candidate,
+        title: detailCandidates[0].title || candidate.title,
+        price: detailCandidates[0].price,
+        url: detailCandidates[0].url || candidate.url
+      };
+    }
+
+    return candidate;
+  }
+
   async function checkShop(domain, productName) {
     const searchQueries = shared.buildSearchQueries(productName);
     const searchRequests = searchQueries.flatMap((query) => shared.buildSearchRequests(domain, query));
     let lastFailure = null;
+    let hadSuccessfulResponse = false;
 
     for (const searchRequest of searchRequests) {
       const response = await fetchSearchRequest(searchRequest);
@@ -339,30 +438,45 @@
         continue;
       }
 
+      hadSuccessfulResponse = true;
       const candidates = shared.extractProductCandidates(response.text, response.url || searchRequest.displayUrl, productName);
 
       if (candidates.length > 0) {
+        let bestCandidate = candidates[0];
+
+        if (VERIFY_PRICE_DOMAINS.has(domain) && bestCandidate.url) {
+          bestCandidate = await verifyPriceFromDetailPage(bestCandidate, productName);
+        }
+
         return {
           domain,
           searchUrl: searchRequest.displayUrl,
           state: "found",
-          ...candidates[0]
+          ...bestCandidate
         };
       }
+    }
+
+    if (hadSuccessfulResponse) {
+      return {
+        domain,
+        searchUrl: searchRequests[0]?.displayUrl,
+        state: "manual"
+      };
     }
 
     return {
       domain,
       searchUrl: searchRequests[0]?.displayUrl,
-      state: "missing",
-      message: lastFailure || "Nenasla sa zhoda s cenou."
+      state: "error",
+      message: lastFailure || "Nepodarilo sa nacitat obchod."
     };
   }
 
   function createFailedShopResult(domain, error) {
     return {
       domain,
-      state: "missing",
+      state: "error",
       message: error.message || "Nepodarilo sa skontrolovat obchod."
     };
   }
@@ -471,6 +585,14 @@
 
     root.append(title, meta, query, button, summary, status, toggle, list);
     return root;
+  }
+
+  setUiCleanupEnabled(true);
+
+  if (settingsApi) {
+    const settings = await settingsApi.getSettings();
+    setUiCleanupEnabled(settings.uiCleanupEnabled);
+    listenForSettingsChanges();
   }
 
   insertPanel(createPanel());

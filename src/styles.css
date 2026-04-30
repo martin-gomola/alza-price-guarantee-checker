@@ -1,15 +1,3 @@
-[data-testid="component-alternativePricingModule"],
-[data-testid="alternative-pricing-container"],
-[data-testid="alternative-pricing-item"],
-.alternativePricingModule,
-.ads-pb--instalments-c,
-[class*="ads-pb--instalments"],
-.warranty-list-compact,
-.warranty-list,
-.accessoriesBlockNew {
-  display: none !important;
-}
-
 #alza-checker-root {
   box-sizing: border-box;
   width: 100%;
@@ -155,6 +143,14 @@
   border-left-color: #2f8ed8;
 }
 
+.alza-checker-row--manual {
+  border-left-color: #d97706;
+}
+
+.alza-checker-row--error {
+  border-left-color: #cbd2d9;
+}
+
 .alza-checker-row--missing {
   border-left-color: #cbd2d9;
 }
@@ -180,4 +176,24 @@
 .alza-checker-detail a {
   color: #0b5cad;
   text-decoration: underline;
+}
+
+.alza-checker-search-btn {
+  display: inline-block;
+  padding: 4px 10px;
+  border: 1px solid #d97706;
+  border-radius: 4px;
+  background: #fffbeb;
+  color: #92400e !important;
+  font-weight: 700;
+  text-decoration: none !important;
+}
+
+.alza-checker-search-btn:hover {
+  background: #fef3c7;
+}
+
+.alza-checker-detail--error {
+  color: #9ca3af;
+  font-size: 12px;
 }

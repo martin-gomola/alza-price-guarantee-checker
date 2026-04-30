@@ -2,6 +2,10 @@ importScripts("shared.js");
 
 const FETCH_TIMEOUT_MS = 10000;
 
+chrome.action.onClicked.addListener(() => {
+  chrome.runtime.openOptionsPage();
+});
+
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (!message || message.type !== "alza-checker:fetch-text") {
     return false;

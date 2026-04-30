@@ -1,0 +1,13 @@
+.alza-checker-unit-price {
+  display: block;
+  margin-top: 4px;
+  padding: 2px 8px;
+  border-radius: 3px;
+  background: #e8f5e9;
+  color: #2e7d32;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.5;
+  white-space: nowrap;
+  width: fit-content;
+}
