@@ -64,6 +64,9 @@
   }
 
   const MAX_SENSIBLE_UNIT_PRICE = 200;
+  const isCzLocale = /alza\.cz/i.test(window.location.hostname);
+  const currencySymbol = isCzLocale ? "K\u010d" : "\u20ac";
+  const currencyLocale = isCzLocale ? "cs-CZ" : "sk-SK";
 
   function computeUnitPrice(price, quantity) {
     if (!quantity || !price || price <= 0) return null;
@@ -76,21 +79,25 @@
 
     let text;
     if (base.perPiece) {
-      const cents = perUnit * 100;
-      text = cents < 100
-        ? `${cents.toFixed(1).replace(".", ",")} ct/ks (${Math.round(base.value)} ks)`
-        : `${perUnit.toFixed(2).replace(".", ",")} \u20ac/ks (${Math.round(base.value)} ks)`;
+      if (isCzLocale) {
+        text = `${perUnit.toFixed(2).replace(".", ",")} K\u010d/ks (${Math.round(base.value)} ks)`;
+      } else {
+        const cents = perUnit * 100;
+        text = cents < 100
+          ? `${cents.toFixed(1).replace(".", ",")} ct/ks (${Math.round(base.value)} ks)`
+          : `${perUnit.toFixed(2).replace(".", ",")} \u20ac/ks (${Math.round(base.value)} ks)`;
+      }
     } else {
       text = perUnit < 100
-        ? `${perUnit.toFixed(2).replace(".", ",")} \u20ac/1 ${base.label}`
-        : `${Math.round(perUnit).toLocaleString("sk-SK")} \u20ac/1 ${base.label}`;
+        ? `${perUnit.toFixed(2).replace(".", ",")} ${currencySymbol}/1 ${base.label}`
+        : `${Math.round(perUnit).toLocaleString(currencyLocale)} ${currencySymbol}/1 ${base.label}`;
     }
 
     return { value: perUnit, text };
   }
 
   function extractFirstPrice(text) {
-    const m = String(text || "").match(/(\d[\d\s]*(?:,\d{1,2})?)\s*\u20ac/);
+    const m = String(text || "").match(/(\d[\d\s]*(?:,\d{1,2})?)\s*(?:\u20ac|K\u010d|CZK)/i);
     if (!m) return null;
     const value = parseNum(m[1].replace(/\s/g, ""));
     return Number.isFinite(value) && value > 0 ? value : null;
@@ -112,7 +119,7 @@
     );
 
     for (const priceEl of priceElements) {
-      if (!priceEl.textContent.includes("\u20ac")) continue;
+      if (!priceEl.textContent.includes(currencySymbol)) continue;
       if (priceEl.closest(`[${UNIT_PRICE_ATTR}]`)) continue;
 
       const card = findCardAncestor(priceEl);
@@ -151,7 +158,7 @@
 
       const links = fallback.querySelectorAll("a[href]");
       const hasTitle = [...links].some(a => a.textContent.trim().length > 10);
-      const hasPrice = fallback.textContent.includes("\u20ac");
+      const hasPrice = fallback.textContent.includes(currencySymbol);
       if (hasTitle && hasPrice) return fallback;
     }
 
@@ -181,7 +188,7 @@
       const text = el.textContent.trim();
       if (
         text.length > 10 && text.length < 300 &&
-        !text.includes("\u20ac") &&
+        !text.includes(currencySymbol) &&
         /\d+\s*(g|kg|ml|l)\b/i.test(text)
       ) {
         return text;
@@ -199,7 +206,7 @@
 
     for (const el of priceEls) {
       const text = el.textContent;
-      if (!text.includes("\u20ac")) continue;
+      if (!text.includes(currencySymbol)) continue;
       if (/\/1?\s*(kg|l|ks|g|ml)\b/.test(text)) continue;
 
       const price = extractFirstPrice(text);
@@ -218,7 +225,7 @@
   }
 
   function hasExistingUnitPrice(card) {
-    return /\d+[.,]\d+\s*€\s*\/\s*1?\s*(kg|l|ks|g|ml)\b/i.test(card.textContent);
+    return /\d+[.,]\d+\s*(?:€|Kč|CZK)\s*\/\s*1?\s*(kg|l|ks|g|ml)\b/i.test(card.textContent);
   }
 
   function processCard(card) {

@@ -54,17 +54,21 @@
     return shared.cleanProductName(document.querySelector(SELECTORS.h1)?.textContent);
   }
 
+  function getLocale() {
+    return /alza\.cz/i.test(window.location.hostname) ? "cz" : "sk";
+  }
+
   function getAlzaPrice() {
     const mainPrice = document.querySelector(
       '.price-box__price, [data-testid="price-primary"] .price-box__price, .ads-pb--big [data-slot="pb-inner"], .js-price-box .prc'
     );
     if (mainPrice) {
-      const price = shared.parseEuroPrice(mainPrice.textContent);
+      const price = shared.parsePrice(mainPrice.textContent);
       if (price) return price;
     }
 
     const priceArea = document.querySelector(SELECTORS.priceArea);
-    return shared.parseEuroPrice(priceArea?.textContent || document.body.textContent);
+    return shared.parsePrice(priceArea?.textContent || document.body.textContent);
   }
 
   function getGuaranteeApiUrls() {
@@ -373,7 +377,19 @@
     "smarty.sk",
     "spokojnypes.sk",
     "superzoo.sk",
-    "tetadrogerie.sk"
+    "tetadrogerie.sk",
+    "czc.cz",
+    "datart.cz",
+    "decathlon.cz",
+    "drmax.cz",
+    "heureka.cz",
+    "kasa.cz",
+    "mall.cz",
+    "mironet.cz",
+    "notino.cz",
+    "pilulka.cz",
+    "sportisimo.cz",
+    "tsbohemia.cz"
   ]);
 
   async function verifyPriceFromDetailPage(candidate, productName) {
@@ -482,7 +498,7 @@
     renderResults([]);
 
     try {
-      state.shops = shared.mergeDefaultSearchShops(await loadSupportedShops());
+      state.shops = shared.mergeDefaultSearchShops(await loadSupportedShops(), getLocale());
 
       if (state.shops.length === 0) {
         renderStatus("Nenasiel som obchody na kontrolu. Otvor Garancia najlepsej ceny na Alze a skus znova.");

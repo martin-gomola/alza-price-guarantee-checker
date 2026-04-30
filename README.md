@@ -1,12 +1,12 @@
 # Alza Price Guarantee Checker
 
-Chrome extension that compares Alza.sk prices against competitor shops listed in their "Garancia najlepšej ceny" program. Also blocks ads, shows unit prices, and strips tracking scripts on Alza and Heureka.
+Chrome extension that compares Alza.sk and Alza.cz prices against competitor shops listed in their price guarantee program. Also blocks ads, shows unit prices, and strips tracking scripts on Alza and Heureka.
 
 <img src="docs/store-screenshot.png" alt="Price comparison panel on Alza product page" width="600">
 
 ## Features
 
-- **Price comparison** — searches 20+ Slovak e-shops (heureka, drmax, nay, decathlon, alltoys, etc.) and extracts the best matching price
+- **Price comparison** — searches 20+ Slovak and 13+ Czech e-shops (heureka, drmax, nay, czc, mall, datart, etc.) and extracts the best matching price
 - **Two-step verification** — fetches competitor detail pages for accurate pricing via JSON-LD, OpenGraph meta tags, and DOM extraction
 - **Unit price** — shows price per kg/liter on listing and detail pages; price per piece for LEGO sets
 - **Ad blocking** — `declarativeNetRequest` rules kill Google Ads, Criteo, Facebook, Hotjar, Clarity, and 10 other tracking domains before they load
@@ -22,7 +22,7 @@ Chrome extension that compares Alza.sk prices against competitor shops listed in
 3. Open `chrome://extensions`
 4. Enable **Developer mode** (top-right toggle)
 5. Click **Load unpacked**, select the extracted folder
-6. Visit any Alza.sk product page
+6. Visit any Alza.sk or Alza.cz product page
 
 ### From source
 
@@ -30,7 +30,7 @@ Chrome extension that compares Alza.sk prices against competitor shops listed in
 2. Open `chrome://extensions`
 3. Enable **Developer mode**
 4. Click **Load unpacked**, select the repo folder
-5. Visit any Alza.sk product page
+5. Visit any Alza.sk or Alza.cz product page
 
 The comparison panel appears below the buy button. Click **Skontrolovať konkurenciu** to run.
 
@@ -41,9 +41,9 @@ Click the extension icon to toggle:
 | Toggle | Default | What it does |
 |--------|---------|--------------|
 | Čistenie UI | on | Hides Alza clutter (splátky, warranties, banners) |
-| Jednotková cena | on | Shows €/kg, €/l, ct/ks where applicable |
+| Jednotková cena | on | Shows €/kg, Kč/kg, €/l, ct/ks where applicable |
 | Overenie cien z detailu | on | Fetches competitor detail pages for precise prices |
-| Heureka: skryť reklamy | on | Hides banner ads on heureka.sk |
+| Heureka: skryť reklamy | on | Hides banner ads on heureka.sk and heureka.cz |
 
 ## How it works
 

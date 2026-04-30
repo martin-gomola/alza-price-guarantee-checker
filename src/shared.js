@@ -9,10 +9,17 @@
     "kg",
     "ks",
     "na",
+    "nebo",
+    "od",
+    "po",
+    "pro",
     "pre",
     "s",
+    "se",
     "v",
-    "z"
+    "ve",
+    "z",
+    "ze"
   ]);
 
   const SEARCH_TEMPLATES = {
@@ -48,9 +55,27 @@
     "smarty.sk": ["https://www.smarty.sk/Vyhladavanie?query={query}"],
     "sportisimo.sk": ["https://www.sportisimo.sk/vyhladavanie-produktov/?q={queryPlus}"],
     "superzoo.sk": ["https://www.superzoo.sk/hladanie/?query={query}"],
-    "tetadrogerie.sk": ["https://www.tetadrogerie.sk/produkty/?hladaj={queryPlus}"]
+    "tetadrogerie.sk": ["https://www.tetadrogerie.sk/produkty/?hladaj={queryPlus}"],
+
+    "czc.cz": ["https://www.czc.cz/hledani?q={queryPlus}"],
+    "datart.cz": ["https://www.datart.cz/search/?q={queryPlus}"],
+    "decathlon.cz": ["https://www.decathlon.cz/search/?query={queryPlus}"],
+    "drmax.cz": ["https://www.drmax.cz/search?q={queryPlus}"],
+    "heureka.cz": ["https://www.heureka.cz/?h%5Bfraze%5D={queryPlus}"],
+    "kasa.cz": ["https://www.kasa.cz/search?q={queryPlus}"],
+    "mall.cz": ["https://www.mall.cz/hledej?s={queryPlus}"],
+    "mironet.cz": ["https://www.mironet.cz/search/?q={queryPlus}"],
+    "mountfield.cz": ["https://www.mountfield.cz/hledani?q={queryPlus}"],
+    "notino.cz": ["https://www.notino.cz/hledani/?q={queryPlus}"],
+    "pilulka.cz": ["https://www.pilulka.cz/hledani?q={queryPlus}"],
+    "sportisimo.cz": ["https://www.sportisimo.cz/vyhledavani-produktu/?q={queryPlus}"],
+    "tsbohemia.cz": ["https://www.tsbohemia.cz/hledani_c0.html?SearchText={queryPlus}"]
   };
-  const DEFAULT_SEARCH_SHOPS = ["heureka.sk"];
+
+  const ALLOWED_TLDS = new Set([".sk", ".cz"]);
+
+  const DEFAULT_SEARCH_SHOPS_SK = ["heureka.sk"];
+  const DEFAULT_SEARCH_SHOPS_CZ = ["heureka.cz"];
 
   const TOKEN_SYNONYMS = {
     kvasnice: ["yeast"],
@@ -148,6 +173,53 @@
     return `${String(value).replace(".", ",")} \u20ac`;
   }
 
+  function parseCzkPrices(text) {
+    const matches = String(text || "").matchAll(/(?<![a-z0-9-])(\d{1,6}(?:[\s.]\d{3})*(?:[,.]\d{1,2})?)\s*(?:K\u010d|CZK)/gi);
+    const prices = [];
+
+    for (const match of matches) {
+      const normalized = match[1].replace(/[\s.]/g, "").replace(",", ".");
+      const value = Number.parseFloat(normalized);
+
+      if (Number.isFinite(value) && value > 0) {
+        prices.push({
+          value,
+          text: `${match[1].replace(/\s+/g, " ")} K\u010d`
+        });
+      }
+    }
+
+    return prices;
+  }
+
+  function parseCzkPrice(text) {
+    return parseCzkPrices(text)[0] || null;
+  }
+
+  function formatCzkPrice(value) {
+    const rounded = Math.round(value) === value ? String(value) : String(value).replace(".", ",");
+    return `${rounded} K\u010d`;
+  }
+
+  function detectCurrency(text) {
+    const str = String(text || "");
+    if (/K\u010d|CZK/i.test(str)) return "CZK";
+    if (/\u20ac/.test(str)) return "EUR";
+    return null;
+  }
+
+  function parsePrices(text) {
+    return [...parseEuroPrices(text), ...parseCzkPrices(text)];
+  }
+
+  function parsePrice(text) {
+    return parseEuroPrice(text) || parseCzkPrice(text);
+  }
+
+  function formatPrice(value, currency) {
+    return currency === "CZK" ? formatCzkPrice(value) : formatEuroPrice(value);
+  }
+
   function parsePriceValue(value) {
     const normalized = normalizeWhitespace(value);
 
@@ -157,6 +229,10 @@
 
     if (normalized.includes("\u20ac")) {
       return parseEuroPrice(normalized);
+    }
+
+    if (/K\u010d|CZK/i.test(normalized)) {
+      return parseCzkPrice(normalized);
     }
 
     const number = Number.parseFloat(normalized.replace(/\s/g, "").replace(",", "."));
@@ -171,30 +247,34 @@
     };
   }
 
+  const PRICE_SUFFIX = /(?:\u20ac|K\u010d|CZK)/i;
+  const SHIPPING_NEARBY = /(doprava|postovne|poštovne|postovn[eé]|doručen)/;
+  const NOISE_NEARBY = /(doprava|postovne|poštovne|postovn[eé]|doručen|usetrite|ušetr|usetř|zlav|zlava|slev|splát|splat|mesacne|mesačne|měsíčn)/;
+
   function parseProductPrice(text) {
     const normalized = normalizeWhitespace(text);
     const preferredPatterns = [
-      /\b(?:cena\s+od)\s*(\d{1,4}(?:[\s.]\d{3})*(?:,\d{1,2})?)\s*\u20ac/i,
-      /\b(?:cena|predajna\s+cena)\s*:?\s*(\d{1,4}(?:[\s.]\d{3})*(?:,\d{1,2})?)\s*\u20ac/i
+      /\b(?:cena\s+od)\s*(\d{1,6}(?:[\s.]\d{3})*(?:,\d{1,2})?)\s*(?:\u20ac|K\u010d|CZK)/i,
+      /\b(?:cena|predajna\s+cena|prodejn[ií]\s+cena)\s*:?\s*(\d{1,6}(?:[\s.]\d{3})*(?:,\d{1,2})?)\s*(?:\u20ac|K\u010d|CZK)/i
     ];
 
     for (const pattern of preferredPatterns) {
       const match = normalized.match(pattern);
 
       if (match) {
-        return parseEuroPrice(`${match[1]} \u20ac`);
+        return parsePrice(`${match[1]} ${detectCurrencySuffix(normalized)}`);
       }
     }
 
-    for (const match of normalized.matchAll(/\bod\s*(\d{1,4}(?:[\s.]\d{3})*(?:,\d{1,2})?)\s*\u20ac/gi)) {
+    for (const match of normalized.matchAll(/\bod\s*(\d{1,6}(?:[\s.]\d{3})*(?:,\d{1,2})?)\s*(?:\u20ac|K\u010d|CZK)/gi)) {
       const nearby = stripDiacritics(normalized.slice(Math.max(0, match.index - 30), match.index + match[0].length + 20));
 
-      if (!/(doprava|postovne|poštovne)/.test(nearby)) {
-        return parseEuroPrice(`${match[1]} \u20ac`);
+      if (!SHIPPING_NEARBY.test(nearby)) {
+        return parsePrice(`${match[1]} ${detectCurrencySuffix(match[0])}`);
       }
     }
 
-    const prices = parseEuroPrices(normalized);
+    const prices = parsePrices(normalized);
 
     if (prices.length <= 1) {
       return prices[0] || null;
@@ -204,7 +284,7 @@
       const index = normalized.indexOf(price.text);
       const nearby = stripDiacritics(normalized.slice(Math.max(0, index - 18), index + price.text.length + 12));
 
-      return !/(doprava|postovne|poštovne|usetrite|ušetr|zlav|zlava|splát|splat|mesacne|mesačne)/.test(nearby);
+      return !NOISE_NEARBY.test(nearby);
     });
 
     const candidates = safePrices.length > 0 ? safePrices : prices;
@@ -212,8 +292,13 @@
     return candidates.slice().sort((a, b) => a.value - b.value)[0] || null;
   }
 
+  function detectCurrencySuffix(text) {
+    if (/K\u010d|CZK/i.test(text)) return "K\u010d";
+    return "\u20ac";
+  }
+
   function parseSupportedShopsFromText(text) {
-    const ignored = new Set(["alza.sk", "www.alza.sk"]);
+    const ignored = new Set(["alza.sk", "www.alza.sk", "alza.cz", "www.alza.cz"]);
     const domains = new Set();
     const normalizedText = String(text || "")
       .replace(/&(?:#46|period);/gi, ".")
@@ -221,12 +306,13 @@
       .replace(/([a-z0-9])\s+\.\s*([a-z])/gi, "$1.$2")
       .replace(/([a-z0-9])\s*\.\s+([a-z])/gi, "$1.$2")
       .toLowerCase()
-      .replace(/(\.sk)(?=[a-z0-9-]+\.)/g, "$1 ");
+      .replace(/(\.(?:sk|cz))(?=[a-z0-9-]+\.)/g, "$1 ");
     const matches = normalizedText.matchAll(/\b(?:[a-z0-9-]+\.)+[a-z]{2,}\b/g);
 
     for (const match of matches) {
       let domain = match[0].replace(/^www\./, "");
-      if (!domain.endsWith(".sk")) continue;
+      const tld = "." + domain.split(".").pop();
+      if (!ALLOWED_TLDS.has(tld)) continue;
 
       const parts = domain.split(".");
       if (parts.length > 2) {
@@ -253,8 +339,9 @@
 
   function cleanProductName(value) {
     return normalizeWhitespace(value)
-      .replace(/\s+[-|]\s+Alza\.sk.*$/i, "")
+      .replace(/\s+[-|]\s+Alza\.(?:sk|cz).*$/i, "")
       .replace(/^(doplnok stravy pre (psov|macky|ma\u010dky)|krmivo pre (psov|macky|ma\u010dky)|chovatelske potreby|chovate\u013esk\u00e9 potreby)\s+/i, "")
+      .replace(/^(doplněk stravy pro (psy|kočky)|krmivo pro (psy|kočky)|chovatelské potřeby)\s+/i, "")
       .replace(/\b\d+\s*x\s*/gi, "")
       .trim();
   }
@@ -290,8 +377,12 @@
     ]);
   }
 
-  function mergeDefaultSearchShops(shops) {
-    return uniqueValues([...DEFAULT_SEARCH_SHOPS, ...(shops || []).map(normalizeShopDomain)]);
+  function getDefaultSearchShops(locale) {
+    return locale === "cz" ? DEFAULT_SEARCH_SHOPS_CZ : DEFAULT_SEARCH_SHOPS_SK;
+  }
+
+  function mergeDefaultSearchShops(shops, locale) {
+    return uniqueValues([...getDefaultSearchShops(locale), ...(shops || []).map(normalizeShopDomain)]);
   }
 
   function applyQueryTemplate(template, domain, query) {
@@ -406,7 +497,7 @@
       const className = String(node.className || "").toLowerCase();
       const id = String(node.id || "").toLowerCase();
 
-      if (!firstPricedAncestor && parseEuroPrice(node.textContent)) {
+      if (!firstPricedAncestor && parsePrice(node.textContent)) {
         firstPricedAncestor = node;
       }
 
@@ -644,7 +735,7 @@
     const queryTokens = tokenize(query);
     const candidates = [];
     const linkPattern = /<a\b[^>]*href=["']([^"']+)["'][^>]*>([\s\S]{0,900}?)<\/a>/gi;
-    const priceWindowSize = /heureka\.sk/i.test(baseUrl) ? 8000 : 2500;
+    const priceWindowSize = /heureka\.(?:sk|cz)/i.test(baseUrl) ? 8000 : 2500;
     let match;
 
     while ((match = linkPattern.exec(html))) {
@@ -806,6 +897,7 @@
   function parseAttributeProductPrice(chunk) {
     const price = Number.parseFloat(chunk.match(/data-gtm-product-price=["']([^"']+)["']/i)?.[1] || "");
     const vat = Number.parseFloat(chunk.match(/data-gtm-product-vat=["']([^"']+)["']/i)?.[1] || "0");
+    const currency = chunk.match(/data-gtm-product-currency=["']([^"']+)["']/i)?.[1] || "";
     const value = price + vat;
 
     if (!Number.isFinite(value) || value <= 0) {
@@ -814,7 +906,7 @@
 
     return {
       value,
-      text: formatEuroPrice(Number(value.toFixed(2)))
+      text: formatPrice(Number(value.toFixed(2)), /czk/i.test(currency) ? "CZK" : "EUR")
     };
   }
 
@@ -955,9 +1047,14 @@
     normalizeWhitespace,
     parseEuroPrice,
     parseEuroPrices,
+    parseCzkPrice,
+    parseCzkPrices,
+    parsePrice,
+    parsePrices,
     parseProductPrice,
     parseSupportedShopsFromText,
-    isBlockedProductUrl
+    isBlockedProductUrl,
+    detectCurrency
   };
 
   root.AlzaCheckerShared = api;
