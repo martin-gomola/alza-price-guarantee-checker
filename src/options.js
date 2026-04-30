@@ -7,10 +7,8 @@
   }
 
   const toggles = [
-    { id: "ui-cleanup-enabled", key: "uiCleanupEnabled" },
     { id: "unit-price-enabled", key: "unitPriceEnabled" },
-    { id: "price-verification-enabled", key: "priceVerificationEnabled" },
-    { id: "heureka-cleanup-enabled", key: "heurekaCleanupEnabled" }
+    { id: "price-verification-enabled", key: "priceVerificationEnabled" }
   ];
 
   const inputs = toggles.map(({ id, key }) => {

@@ -1,17 +1,25 @@
-html:not(.alza-checker-heureka-no-cleanup) .c-banner,
-html:not(.alza-checker-heureka-no-cleanup) [class*="c-banner"],
-html:not(.alza-checker-heureka-no-cleanup) [class*="advert"],
-html:not(.alza-checker-heureka-no-cleanup) [class*="sponsored"],
-html:not(.alza-checker-heureka-no-cleanup) [id*="banner"],
-html:not(.alza-checker-heureka-no-cleanup) [data-dot="ad"],
-html:not(.alza-checker-heureka-no-cleanup) [data-dot="visual_ad"],
-html:not(.alza-checker-heureka-no-cleanup) .e-visual-ad,
-html:not(.alza-checker-heureka-no-cleanup) .c-visual-ad,
-html:not(.alza-checker-heureka-no-cleanup) .l-bottom-banner-section,
-html:not(.alza-checker-heureka-no-cleanup) .c-tips-slider,
-html:not(.alza-checker-heureka-no-cleanup) [id*="google_ads"],
-html:not(.alza-checker-heureka-no-cleanup) [id*="gar-wallpaper"],
-html:not(.alza-checker-heureka-no-cleanup) [class*="multi-format-container"],
-html:not(.alza-checker-heureka-no-cleanup) .c-slider-products__wrapper[data-testid="Section-root"] {
+.c-banner,
+[class*="c-banner"],
+[class*="advert"],
+[class*="sponsored"],
+[id*="banner"],
+[data-dot="ad"],
+[data-dot="visual_ad"],
+.e-visual-ad,
+.c-visual-ad,
+.l-bottom-banner-section,
+.c-tips-slider,
+[id*="google_ads"],
+[id*="gar-wallpaper"],
+[class*="multi-format-container"],
+.c-slider-products__wrapper[data-testid="Section-root"],
+.l-header-container__section--banner,
+.c-leaderboard-gam {
   display: none !important;
+  height: 0 !important;
+  max-height: 0 !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
 }

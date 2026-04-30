@@ -40,17 +40,9 @@
     upsellBlock: ".warranty-list-compact, .warranty-list, .accessoriesBlockNew"
   };
 
-  function setUiCleanupEnabled(isEnabled) {
-    document.documentElement.classList.toggle("alza-checker-no-cleanup", !isEnabled);
-  }
-
   function listenForSettingsChanges() {
     window.chrome?.storage?.onChanged?.addListener((changes, areaName) => {
       if (areaName !== "local") return;
-
-      if (changes.uiCleanupEnabled) {
-        setUiCleanupEnabled(changes.uiCleanupEnabled.newValue !== false);
-      }
 
       if (changes.priceVerificationEnabled) {
         state.priceVerificationEnabled = changes.priceVerificationEnabled.newValue !== false;
@@ -555,11 +547,8 @@
     return root;
   }
 
-  setUiCleanupEnabled(true);
-
   if (settingsApi) {
     const settings = await settingsApi.getSettings();
-    setUiCleanupEnabled(settings.uiCleanupEnabled);
     state.priceVerificationEnabled = settings.priceVerificationEnabled;
     listenForSettingsChanges();
   }

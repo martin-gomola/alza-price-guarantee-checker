@@ -57,9 +57,6 @@
         "https://www.alza.sk/*",
         "https://alza.sk/*"
       ],
-      "js": [
-        "src/alza-cleanup-gate.js"
-      ],
       "css": [
         "src/alza-cleanup.css"
       ],
@@ -97,10 +94,6 @@
     {
       "matches": [
         "https://*.heureka.sk/*"
-      ],
-      "js": [
-        "src/settings.js",
-        "src/heureka-cleanup.js"
       ],
       "css": [
         "src/heureka-cleanup.css"
