@@ -83,6 +83,7 @@
   };
 
   const ACCESSORY_TOKENS = new Set([
+    "bag",
     "brnkatka",
     "charging",
     "choupette",
@@ -385,11 +386,26 @@
     const withoutQuantity = cleaned
       .replace(/\s+\d+(?:[.,]\d+)?\s*(g|kg|ml|l|ks|mm|cm|m)\b.*$/i, "")
       .trim();
+    const beforeFlavor = cleaned.split(/,\s*(?=[^\d])/)[0].trim();
+    const coreWithQuantity = normalizeWhitespace(
+      beforeFlavor
+        .replace(/&/g, " ")
+        .replace(/\b(powder|prasek|prášok|prasok|praskovy|práškový)\b/gi, " ")
+    );
+    const coreWithoutQuantity = normalizeWhitespace(
+      beforeFlavor
+        .replace(/\b\d+(?:[.,]\d+)?\s*(g|kg|ml|l|ks|mm|cm|m)\b/gi, " ")
+        .replace(/\b\d+(?:[.,]\d+)?\b/g, " ")
+        .replace(/&/g, " ")
+        .replace(/\b(powder|prasek|prášok|prasok|praskovy|práškový)\b/gi, " ")
+    );
 
     return uniqueValues([
       cleaned,
       cleaned.replace(/\s+[–—-]\s+/g, " -- "),
       cleaned.replace(/\s+[–—-]\s+/g, " "),
+      coreWithQuantity,
+      coreWithoutQuantity,
       withoutQuantity
     ]);
   }
@@ -438,7 +454,8 @@
         return {
           url,
           displayUrl: url,
-          method: "GET"
+          method: "GET",
+          matchQuery: requestQuery
         };
       }
 
@@ -449,7 +466,8 @@
         url,
         displayUrl,
         method: template.method || "GET",
-        body: template.body ? replaceQueryPlaceholder(template.body, requestQuery) : undefined
+        body: template.body ? replaceQueryPlaceholder(template.body, requestQuery) : undefined,
+        matchQuery: requestQuery
       };
     }));
   }
@@ -598,7 +616,54 @@
     return Math.max(2, Math.min(5, Math.ceil(queryTokens.length * 0.35)));
   }
 
-  function hasRequiredQueryTokens(text, queryTokens) {
+  function parseQuantityMentions(text) {
+    const normalized = stripDiacritics(text).replace(/,/g, ".");
+    const quantities = [];
+    let match;
+    const pattern = /(\d+(?:\.\d+)?)\s*(kg|g|l|ml)\b/g;
+
+    while ((match = pattern.exec(normalized))) {
+      const value = Number.parseFloat(match[1]);
+      const unit = match[2];
+
+      if (!Number.isFinite(value) || value <= 0) {
+        continue;
+      }
+
+      if (unit === "kg" || unit === "g") {
+        quantities.push({ kind: "mass", value: unit === "kg" ? value * 1000 : value });
+      } else {
+        quantities.push({ kind: "volume", value: unit === "l" ? value * 1000 : value });
+      }
+    }
+
+    return quantities;
+  }
+
+  function hasCompatibleQuantity(text, queryText) {
+    const queryQuantities = parseQuantityMentions(queryText);
+
+    if (queryQuantities.length === 0) {
+      return true;
+    }
+
+    const titleQuantities = parseQuantityMentions(text);
+
+    if (titleQuantities.length === 0) {
+      return true;
+    }
+
+    return queryQuantities.some((queryQuantity) => titleQuantities.some((titleQuantity) => {
+      if (queryQuantity.kind !== titleQuantity.kind) {
+        return false;
+      }
+
+      const tolerance = Math.max(20, queryQuantity.value * 0.08);
+      return Math.abs(queryQuantity.value - titleQuantity.value) <= tolerance;
+    }));
+  }
+
+  function hasRequiredQueryTokens(text, queryTokens, queryText = "") {
     const requiredTokens = queryTokens.filter((token) => {
       if (/^20\d{2}$/.test(token)) {
         return false;
@@ -608,17 +673,24 @@
     });
 
     if (requiredTokens.length === 0) {
-      return true;
+      return hasCompatibleQuantity(text, queryText);
     }
 
     const haystack = stripDiacritics(text);
-    const matchedCount = requiredTokens.filter((token) => haystack.includes(token)).length;
+    const matchedCount = requiredTokens.filter((token) => {
+      if (/^\d+$/.test(token)) {
+        const pattern = new RegExp(`(^|[^a-z0-9])${token}([^a-z0-9]|$)`);
+        return pattern.test(haystack);
+      }
+
+      return haystack.includes(token);
+    }).length;
 
     if (requiredTokens.length <= 3) {
-      return matchedCount === requiredTokens.length;
+      return matchedCount === requiredTokens.length && hasCompatibleQuantity(text, queryText);
     }
 
-    return matchedCount >= Math.ceil(requiredTokens.length * 0.6);
+    return matchedCount >= Math.ceil(requiredTokens.length * 0.6) && hasCompatibleQuantity(text, queryText);
   }
 
   function getCandidateTitleScore(title, containerText, queryTokens) {
@@ -666,7 +738,7 @@
     const queryTokens = tokenize(query);
     const document = new DOMParser().parseFromString(html, "text/html");
     const candidates = [];
-    const pageCandidate = extractPageProductCandidate(document, baseUrl, queryTokens);
+    const pageCandidate = extractPageProductCandidate(document, baseUrl, queryTokens, query);
 
     if (pageCandidate) {
       candidates.push(pageCandidate);
@@ -689,7 +761,7 @@
         continue;
       }
 
-      if (!hasRequiredQueryTokens(title || containerText, queryTokens) || hasDisallowedAccessoryTitle(title, queryTokens) || hasDisallowedConditionTitle(title)) {
+      if (!hasRequiredQueryTokens(title || containerText, queryTokens, query) || hasDisallowedAccessoryTitle(title, queryTokens) || hasDisallowedConditionTitle(title)) {
         continue;
       }
 
@@ -711,7 +783,7 @@
     return uniqueCandidates(candidates).sort((a, b) => b.score - a.score || a.price.value - b.price.value);
   }
 
-  function extractPageProductCandidate(document, baseUrl, queryTokens) {
+  function extractPageProductCandidate(document, baseUrl, queryTokens, queryText = "") {
     const title = normalizeWhitespace(
       document.querySelector("h1")?.textContent ||
       document.querySelector('meta[property="og:title"]')?.getAttribute("content") ||
@@ -724,7 +796,7 @@
     );
     const url = resolveUrl(href, baseUrl);
 
-    if (!title || !url || isBlockedProductUrl(url) || !hasRequiredQueryTokens(title, queryTokens) || hasDisallowedAccessoryTitle(title, queryTokens) || hasDisallowedConditionTitle(title)) {
+    if (!title || !url || isBlockedProductUrl(url) || !hasRequiredQueryTokens(title, queryTokens, queryText) || hasDisallowedAccessoryTitle(title, queryTokens) || hasDisallowedConditionTitle(title)) {
       return null;
     }
 
@@ -769,7 +841,7 @@
         continue;
       }
 
-      if (!hasRequiredQueryTokens(text, queryTokens) || hasDisallowedAccessoryTitle(text, queryTokens) || hasDisallowedConditionTitle(text)) {
+      if (!hasRequiredQueryTokens(text, queryTokens, query) || hasDisallowedAccessoryTitle(text, queryTokens) || hasDisallowedConditionTitle(text)) {
         continue;
       }
 
@@ -804,7 +876,7 @@
       return domCandidates;
     }
 
-    const pageCandidate = extractPageProductCandidateFallback(responseText, baseUrl, tokenize(query));
+    const pageCandidate = extractPageProductCandidateFallback(responseText, baseUrl, tokenize(query), query);
 
     if (pageCandidate) {
       return [pageCandidate];
@@ -828,19 +900,19 @@
   function extractStructuredCandidates(html, baseUrl, query) {
     const queryTokens = tokenize(query);
     const candidates = [
-      ...extractAttributeProductCandidates(html, baseUrl, queryTokens),
-      ...extractGtmProductCandidates(html, baseUrl, queryTokens),
-      ...extractDataPriceCardCandidates(html, baseUrl, queryTokens),
-      ...extractJsonLdCandidates(html, baseUrl, queryTokens)
+      ...extractAttributeProductCandidates(html, baseUrl, queryTokens, query),
+      ...extractGtmProductCandidates(html, baseUrl, queryTokens, query),
+      ...extractDataPriceCardCandidates(html, baseUrl, queryTokens, query),
+      ...extractJsonLdCandidates(html, baseUrl, queryTokens, query)
     ];
 
     return uniqueCandidates(candidates).sort((a, b) => b.score - a.score || a.price.value - b.price.value);
   }
 
-  function buildCandidate(title, price, href, baseUrl, queryTokens) {
+  function buildCandidate(title, price, href, baseUrl, queryTokens, queryText = "") {
     const url = resolveUrl(decodeHtml(href), baseUrl);
 
-    if (!title || !price || !url || isBlockedProductUrl(url) || !hasRequiredQueryTokens(title, queryTokens) || hasDisallowedAccessoryTitle(title, queryTokens) || hasDisallowedConditionTitle(title)) {
+    if (!title || !price || !url || isBlockedProductUrl(url) || !hasRequiredQueryTokens(title, queryTokens, queryText) || hasDisallowedAccessoryTitle(title, queryTokens) || hasDisallowedConditionTitle(title)) {
       return null;
     }
 
@@ -858,7 +930,7 @@
     };
   }
 
-  function extractGtmProductCandidates(html, baseUrl, queryTokens) {
+  function extractGtmProductCandidates(html, baseUrl, queryTokens, queryText = "") {
     const candidates = [];
     const pattern = /data-gtm-data-product='([^']+)'([\s\S]{0,3500}?)(?=<div class="(?:col-|product-box)|$)/gi;
     let match;
@@ -874,7 +946,7 @@
 
       const href = match[2].match(/href=["']([^"']+)["']/i)?.[1] || baseUrl;
       const price = parsePriceValue(product.price);
-      const candidate = buildCandidate(product.item_name, price, href, baseUrl, queryTokens);
+      const candidate = buildCandidate(product.item_name, price, href, baseUrl, queryTokens, queryText);
 
       if (candidate) {
         candidates.push(candidate);
@@ -884,7 +956,7 @@
     return candidates;
   }
 
-  function extractAttributeProductCandidates(html, baseUrl, queryTokens) {
+  function extractAttributeProductCandidates(html, baseUrl, queryTokens, queryText = "") {
     const candidates = [];
     const pattern = /data-gtm-product-name=(["'])(.*?)\1/gi;
     let match;
@@ -901,7 +973,7 @@
         parsePriceValue(stripHtml(decodeHtml(chunk.match(/class=["'][^"']*price[^"']*["'][^>]*>([\s\S]{0,200}?)<\/(?:strong|span|div|p)>/i)?.[1] || ""))) ||
         parseAttributeProductPrice(chunk)
       );
-      const candidate = buildCandidate(title, price, href, baseUrl, queryTokens);
+      const candidate = buildCandidate(title, price, href, baseUrl, queryTokens, queryText);
 
       if (candidate) {
         candidates.push(candidate);
@@ -927,7 +999,7 @@
     };
   }
 
-  function extractDataPriceCardCandidates(html, baseUrl, queryTokens) {
+  function extractDataPriceCardCandidates(html, baseUrl, queryTokens, queryText = "") {
     const candidates = [];
     const pattern = /<a\b[^>]*href=["']([^"']*\/products\/[^"']+)["'][^>]*>([\s\S]{0,900}?)<\/a>[\s\S]{0,1800}?data-prodprice=["']([^"']+)["']/gi;
     let match;
@@ -935,7 +1007,7 @@
     while ((match = pattern.exec(html))) {
       const title = stripHtml(match[2]);
       const price = parsePriceValue(decodeHtml(match[3]));
-      const candidate = buildCandidate(title, price, match[1], baseUrl, queryTokens);
+      const candidate = buildCandidate(title, price, match[1], baseUrl, queryTokens, queryText);
 
       if (candidate) {
         candidates.push(candidate);
@@ -945,7 +1017,7 @@
     return candidates;
   }
 
-  function extractJsonLdCandidates(html, baseUrl, queryTokens) {
+  function extractJsonLdCandidates(html, baseUrl, queryTokens, queryText = "") {
     const candidates = [];
     const pattern = /<script\b[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi;
     let match;
@@ -970,7 +1042,7 @@
           ? parsePriceValue(offer?.price)
           : parsePriceValue(offer?.price) || parsePriceValue(offer?.lowPrice);
         const href = offer?.url || item.url || baseUrl;
-        const candidate = buildCandidate(item.name, price, href, baseUrl, queryTokens);
+        const candidate = buildCandidate(item.name, price, href, baseUrl, queryTokens, queryText);
 
         if (candidate) {
           candidates.push(candidate);
@@ -1021,7 +1093,7 @@
     return null;
   }
 
-  function extractPageProductCandidateFallback(html, baseUrl, queryTokens) {
+  function extractPageProductCandidateFallback(html, baseUrl, queryTokens, queryText = "") {
     const h1 = String(html || "").match(/<h1\b[^>]*>([\s\S]*?)<\/h1>/i);
     const titleTag = String(html || "").match(/<title\b[^>]*>([\s\S]*?)<\/title>/i);
     const canonical = String(html || "").match(/<link\b[^>]*rel=["']canonical["'][^>]*>/i);
@@ -1030,7 +1102,7 @@
     const href = getHtmlAttribute(canonical?.[0] ?? "", "href") || getHtmlAttribute(ogUrl?.[0] ?? "", "content") || baseUrl;
     const url = resolveUrl(href, baseUrl);
 
-    if (!title || !url || isBlockedProductUrl(url) || !hasRequiredQueryTokens(title, queryTokens) || hasDisallowedAccessoryTitle(title, queryTokens)) {
+    if (!title || !url || isBlockedProductUrl(url) || !hasRequiredQueryTokens(title, queryTokens, queryText) || hasDisallowedAccessoryTitle(title, queryTokens)) {
       return null;
     }
 

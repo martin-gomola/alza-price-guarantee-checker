@@ -42,7 +42,6 @@ Click the extension icon to toggle:
 |--------|---------|--------------|
 | Čistenie UI | on | Hides Alza clutter (splátky, warranties, banners) |
 | Jednotková cena | on | Shows €/kg, Kč/kg, €/l, ct/ks where applicable |
-| Overenie cien z detailu | on | Fetches competitor detail pages for precise prices |
 | Heureka: skryť reklamy | on | Hides banner ads on heureka.sk and heureka.cz |
 
 ## How it works

@@ -2,7 +2,6 @@
   const DEFAULT_SETTINGS = {
     uiCleanupEnabled: true,
     unitPriceEnabled: true,
-    priceVerificationEnabled: true,
     heurekaCleanupEnabled: true
   };
 
@@ -10,7 +9,6 @@
     return {
       uiCleanupEnabled: value?.uiCleanupEnabled !== false,
       unitPriceEnabled: value?.unitPriceEnabled !== false,
-      priceVerificationEnabled: value?.priceVerificationEnabled !== false,
       heurekaCleanupEnabled: value?.heurekaCleanupEnabled !== false
     };
   }

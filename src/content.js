@@ -10,8 +10,7 @@
     isExpanded: false,
     shops: [],
     results: [],
-    isRunning: false,
-    priceVerificationEnabled: true
+    isRunning: false
   };
   const FETCH_TIMEOUT_MS = 10000;
   const SELECTORS = {
@@ -39,16 +38,6 @@
     priceArea: '[data-testid="price-primary"], .price-detail__price-box-wrapper, .price-detail',
     upsellBlock: ".warranty-list-compact, .warranty-list, .accessoriesBlockNew"
   };
-
-  function listenForSettingsChanges() {
-    window.chrome?.storage?.onChanged?.addListener((changes, areaName) => {
-      if (areaName !== "local") return;
-
-      if (changes.priceVerificationEnabled) {
-        state.priceVerificationEnabled = changes.priceVerificationEnabled.newValue !== false;
-      }
-    });
-  }
 
   function getProductName() {
     return shared.cleanProductName(document.querySelector(SELECTORS.h1)?.textContent);
@@ -436,12 +425,16 @@
       }
 
       hadSuccessfulResponse = true;
-      const candidates = shared.extractProductCandidates(response.text, response.url || searchRequest.displayUrl, productName);
+      const candidates = shared.extractProductCandidates(
+        response.text,
+        response.url || searchRequest.displayUrl,
+        searchRequest.matchQuery || productName
+      );
 
       if (candidates.length > 0) {
         let bestCandidate = candidates[0];
 
-        if (state.priceVerificationEnabled && VERIFY_PRICE_DOMAINS.has(domain) && bestCandidate.url) {
+        if (VERIFY_PRICE_DOMAINS.has(domain) && bestCandidate.url) {
           bestCandidate = await verifyPriceFromDetailPage(bestCandidate, productName);
         }
 
@@ -565,12 +558,6 @@
 
   if (getLocale() === "cz") {
     shared.setDefaultCurrency("CZK");
-  }
-
-  if (settingsApi) {
-    const settings = await settingsApi.getSettings();
-    state.priceVerificationEnabled = settings.priceVerificationEnabled;
-    listenForSettingsChanges();
   }
 
   const isProductPage = Boolean(

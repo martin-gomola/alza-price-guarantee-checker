@@ -19,3 +19,81 @@
 [class*="brandingEars"] {
   display: none !important;
 }
+
+/* Product page UX polish: clearer hierarchy in the buy column */
+.price-detail__right-col {
+  gap: 14px;
+}
+
+.price-detail__right-col > * {
+  border-radius: 10px;
+}
+
+.price-detail__right-col .price-box,
+.price-detail__right-col [data-testid="price-primary"] {
+  margin-bottom: 4px;
+  padding: 10px 12px;
+  border: 1px solid #d6e3ef;
+  background: #f8fbff;
+}
+
+.price-detail__right-col .availability-box,
+.price-detail__right-col [class*="availability"] {
+  margin-top: 0;
+  padding: 12px 14px;
+  border: 1px solid #d6e3ef;
+  border-radius: 10px;
+  background: #f8fbff;
+}
+
+/* Stronger CTA hierarchy */
+.price-detail__right-col .price-detail__buy-actions,
+.price-detail__right-col [data-testid="buy-actions"] {
+  margin-top: 4px;
+  padding: 8px;
+  border: 1px solid #c8d9ea;
+  border-radius: 10px;
+  background: #ffffff;
+}
+
+.price-detail__right-col button,
+.price-detail__right-col [role="button"] {
+  min-height: 48px;
+}
+
+.price-detail__right-col .price-box__price,
+.price-detail__right-col [data-testid="price-primary"] .price-box__price {
+  font-size: 52px !important;
+  line-height: 1.05 !important;
+  font-weight: 800 !important;
+}
+
+.price-detail__right-col .price-box__price + *,
+.price-detail__right-col [data-testid="price-primary"] .price-box__price + * {
+  margin-top: 6px !important;
+}
+
+/* Variant controls: selected option should be visually obvious */
+.price-detail__right-col [role="radio"][aria-checked="true"],
+.price-detail__right-col [aria-selected="true"],
+.price-detail__right-col [class*="selected"] {
+  border-color: #2f8ed8 !important;
+  background: #eef6ff !important;
+  box-shadow: 0 0 0 2px rgba(47, 142, 216, 0.2);
+}
+
+/* Accessibility: clear keyboard focus in buy column */
+.price-detail__right-col button:focus-visible,
+.price-detail__right-col a:focus-visible,
+.price-detail__right-col [role="button"]:focus-visible,
+.price-detail__right-col [role="radio"]:focus-visible {
+  outline: 2px solid #0b5cad !important;
+  outline-offset: 2px;
+}
+
+/* Reduce promo noise close to checkout actions */
+.price-detail__right-col [class*="referral"],
+.price-detail__right-col [class*="recommend"],
+.price-detail__right-col [class*="promo-banner"] {
+  display: none !important;
+}

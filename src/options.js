@@ -7,8 +7,7 @@
   }
 
   const toggles = [
-    { id: "unit-price-enabled", key: "unitPriceEnabled" },
-    { id: "price-verification-enabled", key: "priceVerificationEnabled" }
+    { id: "unit-price-enabled", key: "unitPriceEnabled" }
   ];
 
   const inputs = toggles.map(({ id, key }) => {

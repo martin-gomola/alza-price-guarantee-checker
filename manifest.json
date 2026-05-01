@@ -74,6 +74,16 @@
         "https://www.alza.cz/*",
         "https://alza.cz/*"
       ],
+      "exclude_matches": [
+        "https://www.alza.sk/Order*.htm*",
+        "https://alza.sk/Order*.htm*",
+        "https://www.alza.cz/Order*.htm*",
+        "https://alza.cz/Order*.htm*",
+        "https://www.alza.sk/order*.htm*",
+        "https://alza.sk/order*.htm*",
+        "https://www.alza.cz/order*.htm*",
+        "https://alza.cz/order*.htm*"
+      ],
       "css": [
         "src/alza-cleanup.css"
       ],
@@ -85,6 +95,16 @@
         "https://alza.sk/*",
         "https://www.alza.cz/*",
         "https://alza.cz/*"
+      ],
+      "exclude_matches": [
+        "https://www.alza.sk/Order*.htm*",
+        "https://alza.sk/Order*.htm*",
+        "https://www.alza.cz/Order*.htm*",
+        "https://alza.cz/Order*.htm*",
+        "https://www.alza.sk/order*.htm*",
+        "https://alza.sk/order*.htm*",
+        "https://www.alza.cz/order*.htm*",
+        "https://alza.cz/order*.htm*"
       ],
       "js": [
         "src/shared.js",
@@ -102,6 +122,16 @@
         "https://alza.sk/*",
         "https://www.alza.cz/*",
         "https://alza.cz/*"
+      ],
+      "exclude_matches": [
+        "https://www.alza.sk/Order*.htm*",
+        "https://alza.sk/Order*.htm*",
+        "https://www.alza.cz/Order*.htm*",
+        "https://alza.cz/Order*.htm*",
+        "https://www.alza.sk/order*.htm*",
+        "https://alza.sk/order*.htm*",
+        "https://www.alza.cz/order*.htm*",
+        "https://alza.cz/order*.htm*"
       ],
       "js": [
         "src/settings.js",
