@@ -1,6 +1,8 @@
 # Alza Price Guarantee Checker
 
-Chrome extension that compares Alza.sk and Alza.cz prices against competitor shops listed in their price guarantee program. Also blocks ads, shows unit prices, and strips tracking scripts on Alza and Heureka.
+Chrome extension focused on one primary purpose: helping users verify Alza price-guarantee eligibility by comparing Alza.sk and Alza.cz product prices with competitor shops listed in Alza's "Garancia najlepsej ceny" flow.
+
+Supporting UX features (unit price, cleanup, ad/tracker suppression on relevant pages) are included only to make that comparison workflow faster and clearer.
 
 <img src="docs/store-screenshot.png" alt="Price comparison panel on Alza product page" width="600">
 
@@ -12,6 +14,12 @@ Chrome extension that compares Alza.sk and Alza.cz prices against competitor sho
 - **Ad blocking** — `declarativeNetRequest` rules kill Google Ads, Criteo, Facebook, Hotjar, Clarity, and 10 other tracking domains before they load
 - **UI cleanup** — hides instalment pricing, warranty upsells, delivery promos, branding banners, and footer clutter on Alza; hides ads on Heureka
 - **Copy product name** — one-click clipboard copy from the product title
+
+## Permissions rationale
+
+- **`storage`** — saves on/off toggles for UI cleanup and unit-price display.
+- **`declarativeNetRequest`** — blocks selected ad/tracker requests on Alza/Heureka pages to reduce noise and speed up price-check UX.
+- **Host permissions** — required to fetch public search/result pages from shops that participate in the Alza guarantee comparison flow.
 
 ## Install
 
@@ -58,3 +66,9 @@ Click the extension icon to toggle:
 ```sh
 npm test
 ```
+
+## Publish readiness
+
+- Privacy policy: [PRIVACY.md](PRIVACY.md)
+- License: [LICENSE](LICENSE)
+- Chrome Web Store checklist and disclosure notes: [docs/CHROME_WEB_STORE.md](docs/CHROME_WEB_STORE.md)

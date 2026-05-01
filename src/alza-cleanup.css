@@ -14,6 +14,7 @@
 [data-testid="component-internalBanner"],
 [class*="internalBanner"],
 [data-testid="footerUspList"],
+[data-testid="footerLogoList"],
 [data-testid="footerAppBanner"],
 [data-testid="component-brandingEars"],
 [class*="brandingEars"] {
