@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Alza Price Guarantee Checker",
-  "description": "Compares Alza.sk product prices against shops supported by Garancia najlepsej ceny.",
-  "version": "1.3.4",
+  "description": "Compares Alza.sk product prices against shops supported by Garancia najlepsej ceny (best-effort automation, always verify final match manually).",
+  "version": "1.0.0",
   "permissions": [
     "storage",
     "declarativeNetRequest"

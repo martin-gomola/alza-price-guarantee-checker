@@ -36,6 +36,10 @@ The extension optionally blocks selected advertising/tracking domains on Alza an
 
 For questions about this privacy policy, open an issue on the project's GitHub repository.
 
+## Accuracy and Warranty Disclaimer
+
+Results are generated automatically on a best-effort basis and may be inaccurate. Always verify the final product match and price manually. This extension is provided "as is", without warranties of any kind.
+
 ## Changes
 
 This policy may be updated if the extension's functionality changes. The latest version is always available in this file.

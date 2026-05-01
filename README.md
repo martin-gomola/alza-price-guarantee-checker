@@ -4,6 +4,8 @@ Chrome extension focused on one primary purpose: helping users verify Alza price
 
 Supporting UX features (unit price, cleanup, ad/tracker suppression on relevant pages) are included only to make that comparison workflow faster and clearer.
 
+> Results are generated automatically on a best-effort basis and may be inaccurate. Always verify the final product match and price manually. This extension is provided "as is", without warranties of any kind.
+
 <img src="docs/store-screenshot.png" alt="Price comparison panel on Alza product page" width="600">
 
 ## Features

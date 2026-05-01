@@ -714,6 +714,11 @@
     return /(bazar|bazár|pouzit|použit|rozbalen|kozmetickou\s+chybou|poškoden|poskoden)/i.test(stripDiacritics(title));
   }
 
+  function hasDisallowedSearchPageTitle(title) {
+    const normalized = stripDiacritics(title);
+    return /(vysledky\s+vyhladavania|vysledky\s+hledani|vysledok\s+vyhladavania|search\s+results?)/i.test(normalized);
+  }
+
   function uniqueCandidates(candidates) {
     const seen = new Set();
     const unique = [];
@@ -761,7 +766,7 @@
         continue;
       }
 
-      if (!hasRequiredQueryTokens(title || containerText, queryTokens, query) || hasDisallowedAccessoryTitle(title, queryTokens) || hasDisallowedConditionTitle(title)) {
+      if (!hasRequiredQueryTokens(title || containerText, queryTokens, query) || hasDisallowedAccessoryTitle(title, queryTokens) || hasDisallowedConditionTitle(title) || hasDisallowedSearchPageTitle(title || containerText)) {
         continue;
       }
 
@@ -796,7 +801,7 @@
     );
     const url = resolveUrl(href, baseUrl);
 
-    if (!title || !url || isBlockedProductUrl(url) || !hasRequiredQueryTokens(title, queryTokens, queryText) || hasDisallowedAccessoryTitle(title, queryTokens) || hasDisallowedConditionTitle(title)) {
+    if (!title || !url || isBlockedProductUrl(url) || !hasRequiredQueryTokens(title, queryTokens, queryText) || hasDisallowedAccessoryTitle(title, queryTokens) || hasDisallowedConditionTitle(title) || hasDisallowedSearchPageTitle(title)) {
       return null;
     }
 
@@ -841,7 +846,7 @@
         continue;
       }
 
-      if (!hasRequiredQueryTokens(text, queryTokens, query) || hasDisallowedAccessoryTitle(text, queryTokens) || hasDisallowedConditionTitle(text)) {
+      if (!hasRequiredQueryTokens(text, queryTokens, query) || hasDisallowedAccessoryTitle(text, queryTokens) || hasDisallowedConditionTitle(text) || hasDisallowedSearchPageTitle(text)) {
         continue;
       }
 
@@ -912,7 +917,7 @@
   function buildCandidate(title, price, href, baseUrl, queryTokens, queryText = "") {
     const url = resolveUrl(decodeHtml(href), baseUrl);
 
-    if (!title || !price || !url || isBlockedProductUrl(url) || !hasRequiredQueryTokens(title, queryTokens, queryText) || hasDisallowedAccessoryTitle(title, queryTokens) || hasDisallowedConditionTitle(title)) {
+    if (!title || !price || !url || isBlockedProductUrl(url) || !hasRequiredQueryTokens(title, queryTokens, queryText) || hasDisallowedAccessoryTitle(title, queryTokens) || hasDisallowedConditionTitle(title) || hasDisallowedSearchPageTitle(title)) {
       return null;
     }
 
@@ -1102,7 +1107,7 @@
     const href = getHtmlAttribute(canonical?.[0] ?? "", "href") || getHtmlAttribute(ogUrl?.[0] ?? "", "content") || baseUrl;
     const url = resolveUrl(href, baseUrl);
 
-    if (!title || !url || isBlockedProductUrl(url) || !hasRequiredQueryTokens(title, queryTokens, queryText) || hasDisallowedAccessoryTitle(title, queryTokens)) {
+    if (!title || !url || isBlockedProductUrl(url) || !hasRequiredQueryTokens(title, queryTokens, queryText) || hasDisallowedAccessoryTitle(title, queryTokens) || hasDisallowedSearchPageTitle(title)) {
       return null;
     }
 
