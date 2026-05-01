@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Alza Price Guarantee Checker",
   "description": "Compares Alza.sk product prices against shops supported by Garancia najlepsej ceny.",
-  "version": "1.3.3",
+  "version": "1.3.4",
   "permissions": [
     "storage",
     "declarativeNetRequest"
@@ -41,6 +41,7 @@
     "https://www.planeo.sk/*",
     "https://www.pompo.sk/*",
     "https://www.profizoo.sk/*",
+    "https://profizoo.sk/*",
     "https://www.petcenter.sk/*",
     "https://www.spokojnypes.sk/*",
     "https://www.smarty.sk/*",
