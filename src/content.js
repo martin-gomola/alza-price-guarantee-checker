@@ -492,16 +492,18 @@
 
     try {
       state.shops = shared.mergeDefaultSearchShops(await loadSupportedShops(), getLocale());
+      const supportedShops = state.shops.filter((domain) => shared.hasSearchTemplate(domain));
+      const unsupportedShops = state.shops.filter((domain) => !shared.hasSearchTemplate(domain));
 
-      if (state.shops.length === 0) {
+      if (supportedShops.length === 0) {
         renderStatus("Nenasiel som obchody na kontrolu. Otvor Garancia najlepsej ceny na Alze a skus znova.");
         return;
       }
 
       const results = [];
 
-      for (const domain of state.shops) {
-        renderStatus(`Kontrolujem ${domain} (${results.length + 1}/${state.shops.length})...`);
+      for (const domain of supportedShops) {
+        renderStatus(`Kontrolujem ${domain} (${results.length + 1}/${supportedShops.length})...`);
         let result;
 
         try {
@@ -514,8 +516,17 @@
         renderResults(results);
       }
 
+      for (const domain of unsupportedShops) {
+        results.push({
+          domain,
+          state: "manual",
+          searchUrl: `https://${domain}`
+        });
+      }
+      renderResults(results);
+
       renderToggle();
-      renderStatus(`Hotovo. Skontrolovane obchody: ${state.shops.length}.`);
+      renderStatus(`Hotovo. Skontrolovane obchody: ${supportedShops.length}.`);
     } catch (error) {
       renderStatus(`Chyba: ${error.message}`);
     } finally {

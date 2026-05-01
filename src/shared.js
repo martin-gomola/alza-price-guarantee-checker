@@ -418,6 +418,11 @@
     return uniqueValues([...getDefaultSearchShops(locale), ...(shops || []).map(normalizeShopDomain)]);
   }
 
+  function hasSearchTemplate(domain) {
+    const normalized = normalizeShopDomain(domain);
+    return Boolean(SEARCH_TEMPLATES[normalized]);
+  }
+
   function applyQueryTemplate(template, domain, query) {
     const value = replaceQueryPlaceholder(template, query);
 
@@ -1137,6 +1142,7 @@
     cleanProductName,
     decodeHtml,
     extractProductCandidates,
+    hasSearchTemplate,
     mergeDefaultSearchShops,
     normalizeWhitespace,
     parseEuroPrice,
