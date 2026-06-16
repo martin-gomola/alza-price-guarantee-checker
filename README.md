@@ -67,8 +67,28 @@ Click the extension icon to toggle:
 ## Verify
 
 ```sh
-npm test
+make test
+# or: npm test
 ```
+
+## Release
+
+```sh
+make version VERSION=1.0.3   # sync version in package.json + manifest.json
+make dist                    # test + zip → dist/alza-price-guarantee-checker-v1.0.3.zip
+```
+
+Then commit, tag, and publish:
+
+```sh
+git add package.json manifest.json
+git commit -m "Release v1.0.3: …"
+git tag v1.0.3
+git push origin main --tags
+gh release create v1.0.3 dist/alza-price-guarantee-checker-v1.0.3.zip --title v1.0.3 --notes "…"
+```
+
+Upload the same zip to the [Chrome Web Store Developer Dashboard](https://chrome.google.com/webstore/devconsole).
 
 ## Publish readiness
 
