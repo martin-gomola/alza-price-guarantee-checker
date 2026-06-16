@@ -1137,14 +1137,40 @@
     };
   }
 
+  function describeFetchFailure({ status = 0, error = "" } = {}) {
+    const normalizedError = String(error || "").toLowerCase();
+
+    if (status === 403 || status === 401 || status === 429) {
+      return "Obchod blokuje automaticku kontrolu. Overte cenu priamo na obchode.";
+    }
+
+    if (status >= 500 && status < 600) {
+      return "Obchod je docasne nedostupny. Skuste to priamo na obchode.";
+    }
+
+    if (normalizedError.includes("timed out") || normalizedError.includes("abort")) {
+      return "Kontrola trvala prilis dlho. Skuste to priamo na obchode.";
+    }
+
+    if (status === 0 || normalizedError.includes("failed to fetch") || normalizedError.includes("network")) {
+      return "Nepodarilo sa spojit s obchodom. Skuste to priamo na obchode.";
+    }
+
+    return "Automaticka kontrola nie je dostupna. Overte cenu priamo na obchode.";
+  }
+
+  const MANUAL_NO_MATCH_MESSAGE = "Nenasla sa zhodna ponuka. Skontrolujte vyhladavanie na obchode.";
+
   const api = {
     buildSearchQueries,
     buildSearchRequests,
     cleanProductName,
     decodeHtml,
+    describeFetchFailure,
     extractProductCandidates,
     hasSearchTemplate,
     mergeDefaultSearchShops,
+    MANUAL_NO_MATCH_MESSAGE,
     normalizeWhitespace,
     parseEuroPrice,
     parseEuroPrices,

@@ -18,3 +18,25 @@ test("includes mi-store.sk when merging supported shops", () => {
   ]);
   assert.equal(shared.hasSearchTemplate("mi-store.sk"), true);
 });
+
+test("describes blocked shop responses without HTTP codes", () => {
+  assert.equal(
+    shared.describeFetchFailure({ status: 403 }),
+    "Obchod blokuje automaticku kontrolu. Overte cenu priamo na obchode."
+  );
+  assert.equal(
+    shared.describeFetchFailure({ status: 429 }),
+    "Obchod blokuje automaticku kontrolu. Overte cenu priamo na obchode."
+  );
+});
+
+test("describes timeouts and network failures in plain language", () => {
+  assert.equal(
+    shared.describeFetchFailure({ error: "Request timed out" }),
+    "Kontrola trvala prilis dlho. Skuste to priamo na obchode."
+  );
+  assert.equal(
+    shared.describeFetchFailure({ status: 0, error: "Failed to fetch" }),
+    "Nepodarilo sa spojit s obchodom. Skuste to priamo na obchode."
+  );
+});

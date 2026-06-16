@@ -427,7 +427,7 @@
       const response = await fetchSearchRequest(searchRequest);
 
       if (!response.ok || !response.text) {
-        lastFailure = response.error || `HTTP ${response.status}`;
+        lastFailure = { status: response.status || 0, error: response.error || "" };
         continue;
       }
 
@@ -458,17 +458,20 @@
       return {
         domain,
         searchUrl: searchRequests[0]?.displayUrl,
-        state: "manual"
+        state: "manual",
+        message: shared.MANUAL_NO_MATCH_MESSAGE
       };
     }
+
+    const failureMessage = lastFailure
+      ? shared.describeFetchFailure(lastFailure)
+      : "Nepodarilo sa nacitat obchod.";
 
     return {
       domain,
       searchUrl: searchRequests[0]?.displayUrl,
       state: searchRequests[0]?.displayUrl ? "manual" : "error",
-      message: lastFailure
-        ? `Automaticka kontrola zlyhala (${lastFailure}).`
-        : "Nepodarilo sa nacitat obchod."
+      message: failureMessage
     };
   }
 
@@ -476,7 +479,7 @@
     return {
       domain,
       state: "error",
-      message: error.message || "Nepodarilo sa skontrolovat obchod."
+      message: shared.describeFetchFailure({ error: error?.message || "" })
     };
   }
 

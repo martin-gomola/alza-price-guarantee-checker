@@ -5,7 +5,9 @@
   "version": "1.0.1",
   "permissions": [
     "storage",
-    "declarativeNetRequest"
+    "declarativeNetRequest",
+    "tabs",
+    "scripting"
   ],
   "declarative_net_request": {
     "rule_resources": [

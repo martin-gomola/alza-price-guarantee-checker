@@ -21,6 +21,7 @@ Supporting UX features (unit price, cleanup, ad/tracker suppression on relevant 
 
 - **`storage`** — saves on/off toggles for UI cleanup and unit-price display.
 - **`declarativeNetRequest`** — blocks selected ad/tracker requests on Alza/Heureka pages to reduce noise and speed up price-check UX.
+- **`tabs` / `scripting`** — opens a short-lived background tab on Heureka only, so Cloudflare-protected search pages can load in a real browser context.
 - **Host permissions** — required to fetch public search/result pages from shops that participate in the Alza guarantee comparison flow.
 
 ## Install
