@@ -9,6 +9,13 @@ chrome.action.onClicked.addListener(() => {
 async function fetchForContentScript(message) {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  const headers = {
+    accept: "text/html,application/xhtml+xml,application/xml;q=0.9,application/json;q=0.8,*/*;q=0.7"
+  };
+
+  if (message.body) {
+    headers["content-type"] = "application/x-www-form-urlencoded;charset=UTF-8";
+  }
 
   try {
     const response = await fetch(message.url, {
@@ -17,10 +24,7 @@ async function fetchForContentScript(message) {
       credentials: "omit",
       redirect: "follow",
       signal: controller.signal,
-      headers: {
-        accept: "text/html,application/xhtml+xml,application/xml;q=0.9,application/json;q=0.8,*/*;q=0.7",
-        "content-type": message.body ? "application/x-www-form-urlencoded;charset=UTF-8" : "text/plain;charset=UTF-8"
-      }
+      headers
     });
 
     return {

@@ -45,6 +45,7 @@
     "istores.sk": ["https://www.istores.sk/vyhladavanie?q={queryPlus}"],
     "istyle.sk": ["https://istyle.sk/search?type=product&q={queryPlus}"],
     "kytary.sk": ["https://kytary.sk/Search/?term={query}&kw={query}"],
+    "mi-store.sk": ["https://www.mi-store.sk/vyhladavanie?search={queryPlus}"],
     "nay.sk": ["https://www.nay.sk/vyhladavanie?q={query}"],
     "obi.sk": ["https://www.obi.sk/search/{queryPlus}"],
     "planeo.sk": ["https://www.planeo.sk/vyhladavanie$a1013-search?query={queryPlus}"],

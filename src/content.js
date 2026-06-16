@@ -331,6 +331,13 @@
         }
       } else if (result.state === "manual" && result.searchUrl) {
         price.textContent = "";
+        if (result.message) {
+          const message = document.createElement("div");
+          message.className = "alza-checker-manual-note";
+          message.textContent = result.message;
+          detail.append(message);
+        }
+
         const link = createExternalLink(result.searchUrl, `Skontrolovat na ${result.domain}`);
         link.className = "alza-checker-search-btn";
         detail.append(link);
@@ -458,8 +465,10 @@
     return {
       domain,
       searchUrl: searchRequests[0]?.displayUrl,
-      state: "error",
-      message: lastFailure || "Nepodarilo sa nacitat obchod."
+      state: searchRequests[0]?.displayUrl ? "manual" : "error",
+      message: lastFailure
+        ? `Automaticka kontrola zlyhala (${lastFailure}).`
+        : "Nepodarilo sa nacitat obchod."
     };
   }
 
