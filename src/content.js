@@ -107,7 +107,9 @@
 
   async function fetchText(url) {
     const target = new URL(url, window.location.href);
-    const isAlzaApi = target.hostname.endsWith("alza.sk") && target.pathname.includes("/priceGuarantee/");
+    const isAlzaApi =
+      /(?:^|\.)alza\.(?:sk|cz)$/i.test(target.hostname) &&
+      target.pathname.includes("/priceGuarantee/");
 
     if (!isAlzaApi) {
       return chrome.runtime.sendMessage({
@@ -169,11 +171,24 @@
         continue;
       }
 
-      const text = shared.normalizeWhitespace(element.textContent);
+      const text = shared.normalizeWhitespace(element.textContent || element.getAttribute("value") || "");
       const parsed = shared.parseSupportedShopsFromText(text);
 
       if (parsed.length === 1) {
         domains.add(parsed[0]);
+      }
+    }
+
+    for (const option of document.querySelectorAll('[role="dialog"] option, select option')) {
+      if (option.closest("#alza-checker-root")) {
+        continue;
+      }
+
+      const text = shared.normalizeWhitespace(option.textContent || option.value || "");
+      const parsed = shared.parseSupportedShopsFromText(text);
+
+      for (const domain of parsed) {
+        domains.add(domain);
       }
     }
 
@@ -364,6 +379,7 @@
     "istores.sk",
     "istyle.sk",
     "kytary.sk",
+    "mojadm.sk",
     "nay.sk",
     "petcenter.sk",
     "planeo.sk",
@@ -373,15 +389,18 @@
     "spokojnypes.sk",
     "superzoo.sk",
     "tetadrogerie.sk",
+    "tetadrogerie.cz",
     "czc.cz",
     "datart.cz",
     "decathlon.cz",
+    "dm.cz",
     "drmax.cz",
     "kasa.cz",
     "mall.cz",
     "mironet.cz",
     "notino.cz",
     "pilulka.cz",
+    "rossmann.cz",
     "sportisimo.cz",
     "tsbohemia.cz"
   ]);
@@ -436,6 +455,11 @@
 
       if (!response.ok || !response.text) {
         lastFailure = { status: response.status || 0, error: response.error || "" };
+        continue;
+      }
+
+      if (shared.isBotChallengePage(response.text)) {
+        lastFailure = { status: 403, error: "bot_challenge" };
         continue;
       }
 

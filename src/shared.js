@@ -35,6 +35,7 @@
     "4camping.sk": ["https://www.4camping.sk/vyhladavanie/?w={query}"],
     "4kids.sk": ["https://www.4kids.sk/vyhladavanie/?q={queryPlus}"],
     "alltoys.sk": ["https://www.alltoys.sk/vyhladavanie/?q={queryPlus}"],
+    "andreashop.sk": ["https://www.andreashop.sk/vyhladavanie?search={query}"],
     "benulekaren.sk": ["https://www.benulekaren.sk/vyhladavanie?q={queryPlus}"],
     "decathlon.sk": ["https://www.decathlon.sk/search/?query={queryPlus}"],
     "dracik.sk": ["https://www.dracik.sk/search/?q={queryPlus}"],
@@ -46,6 +47,7 @@
     "istyle.sk": ["https://istyle.sk/search?type=product&q={queryPlus}"],
     "kytary.sk": ["https://kytary.sk/Search/?term={query}&kw={query}"],
     "mi-store.sk": ["https://www.mi-store.sk/vyhladavanie?search={queryPlus}"],
+    "mojadm.sk": ["https://www.mojadm.sk/search?query={query}&searchProviderType=dm-products"],
     "nay.sk": ["https://www.nay.sk/vyhladavanie?q={query}"],
     "obi.sk": ["https://www.obi.sk/search/{queryPlus}"],
     "planeo.sk": ["https://www.planeo.sk/vyhladavanie$a1013-search?query={queryPlus}"],
@@ -57,10 +59,12 @@
     "sportisimo.sk": ["https://www.sportisimo.sk/vyhladavanie-produktov/?q={queryPlus}"],
     "superzoo.sk": ["https://www.superzoo.sk/hladanie/?query={query}"],
     "tetadrogerie.sk": ["https://www.tetadrogerie.sk/produkty/?hladaj={queryPlus}"],
+    "tetadrogerie.cz": ["https://www.tetadrogerie.cz/eshop/vysledky-vyhledavani?searchtext={queryPlus}"],
 
     "czc.cz": ["https://www.czc.cz/hledani?q={queryPlus}"],
     "datart.cz": ["https://www.datart.cz/search/?q={queryPlus}"],
     "decathlon.cz": ["https://www.decathlon.cz/search/?query={queryPlus}"],
+    "dm.cz": ["https://www.dm.cz/search?query={query}&searchProviderType=dm-products"],
     "drmax.cz": ["https://www.drmax.cz/search?q={queryPlus}"],
     "heureka.cz": ["https://www.heureka.cz/?h%5Bfraze%5D={queryPlus}"],
     "kasa.cz": ["https://www.kasa.cz/search?q={queryPlus}"],
@@ -69,6 +73,10 @@
     "mountfield.cz": ["https://www.mountfield.cz/hledani?q={queryPlus}"],
     "notino.cz": ["https://www.notino.cz/hledani/?q={queryPlus}"],
     "pilulka.cz": ["https://www.pilulka.cz/hledani?q={queryPlus}"],
+    "rossmann.cz": [{
+      url: "https://www.rossmann.cz/vyhledavani$d4063-search.xml?query={queryPlus}&async=true&limit=20",
+      displayUrl: "https://www.rossmann.cz/vyhledavani?q={queryPlus}"
+    }],
     "sportisimo.cz": ["https://www.sportisimo.cz/vyhledavani-produktu/?q={queryPlus}"],
     "tsbohemia.cz": ["https://www.tsbohemia.cz/hledani_c0.html?SearchText={queryPlus}"]
   };
@@ -382,6 +390,51 @@
     return unique;
   }
 
+  const COLOR_TOKENS = new Set([
+    "biela",
+    "biely",
+    "bielou",
+    "black",
+    "cierna",
+    "cierny",
+    "cervena",
+    "cerveny",
+    "modra",
+    "modry",
+    "siva",
+    "sivy",
+    "white",
+    "zelena",
+    "zeleny"
+  ]);
+
+  function buildProgressiveSearchQueries(cleaned) {
+    const tokens = tokenize(cleaned);
+    const variants = [];
+
+    if (tokens.length >= 2) {
+      variants.push(tokens.slice(0, 2).join(" "));
+    }
+
+    if (tokens.length >= 1) {
+      variants.push(tokens[0]);
+    }
+
+    const modelTokens = tokens.filter((token) => /[a-z]*\d|\d[a-z]/i.test(token));
+
+    if (tokens[0] && modelTokens[0]) {
+      variants.push(`${tokens[0]} ${modelTokens[0]}`);
+    }
+
+    const withoutColors = tokens.filter((token) => !COLOR_TOKENS.has(token));
+
+    if (withoutColors.length >= 2 && withoutColors.length < tokens.length) {
+      variants.push(withoutColors.join(" "));
+    }
+
+    return variants;
+  }
+
   function buildSearchQueries(productName) {
     const cleaned = cleanProductName(productName);
     const withoutQuantity = cleaned
@@ -407,7 +460,8 @@
       cleaned.replace(/\s+[–—-]\s+/g, " "),
       coreWithQuantity,
       coreWithoutQuantity,
-      withoutQuantity
+      withoutQuantity,
+      ...buildProgressiveSearchQueries(cleaned)
     ]);
   }
 
@@ -911,6 +965,8 @@
   function extractStructuredCandidates(html, baseUrl, query) {
     const queryTokens = tokenize(query);
     const candidates = [
+      ...extractTetaProductCardCandidates(html, baseUrl, queryTokens, query),
+      ...extractRossmannProductTileCandidates(html, baseUrl, queryTokens, query),
       ...extractAttributeProductCandidates(html, baseUrl, queryTokens, query),
       ...extractGtmProductCandidates(html, baseUrl, queryTokens, query),
       ...extractDataPriceCardCandidates(html, baseUrl, queryTokens, query),
@@ -980,6 +1036,7 @@
       const title = decodeHtml(match[2]);
       const href = chunk.match(/<a\b[^>]*href=["']([^"']+)["']/i)?.[1] || baseUrl;
       const price = (
+        parsePriceValue(chunk.match(/data-testid=["']fulltext\.item\.price["'][^>]*data-test-value=["']([^"']+)["']/i)?.[1]) ||
         parsePriceValue(stripHtml(decodeHtml(chunk.match(/data-testid=["']fulltext\.item\.price["'][^>]*>([\s\S]{0,200}?)<\/(?:strong|span|div|p)>/i)?.[1] || ""))) ||
         parsePriceValue(stripHtml(decodeHtml(chunk.match(/class=["'][^"']*price[^"']*["'][^>]*>([\s\S]{0,200}?)<\/(?:strong|span|div|p)>/i)?.[1] || ""))) ||
         parseAttributeProductPrice(chunk)
@@ -1008,6 +1065,54 @@
       value,
       text: formatPrice(Number(value.toFixed(2)), /czk/i.test(currency) ? "CZK" : "EUR")
     };
+  }
+
+  function extractTetaProductCardCandidates(html, baseUrl, queryTokens, queryText = "") {
+    const candidates = [];
+    const pattern = /<a\b[^>]*href=["'](\/eshop\/katalog\/[^"']+)["'][^>]*class=["'][^"']*c-product-card__link[^"']*["'][^>]*>([\s\S]*?)<\/a>/gi;
+    let match;
+
+    while ((match = pattern.exec(html))) {
+      const chunk = match[2];
+      const title = stripHtml(
+        chunk.match(/class=["'][^"']*c-product-card__title[^"']*["'][^>]*>([\s\S]*?)<\//i)?.[1] ||
+        chunk.match(/<img\b[^>]*alt=["']([^"']+)["']/i)?.[1] ||
+        ""
+      );
+      const priceText = (
+        chunk.match(/class=["'][^"']*c-product-price__value[^"']*["'][^>]*>[\s\S]*?<strong[^>]*>([\s\S]*?)<\/strong>/i)?.[1] ||
+        chunk.match(/class=["'][^"']*c-product-price__former-price[^"']*["'][^>]*>([\s\S]*?)<\//i)?.[1] ||
+        ""
+      );
+      const price = parsePriceValue(stripHtml(decodeHtml(priceText)));
+      const candidate = buildCandidate(title, price, match[1], baseUrl, queryTokens, queryText);
+
+      if (candidate) {
+        candidates.push(candidate);
+      }
+    }
+
+    return candidates;
+  }
+
+  function extractRossmannProductTileCandidates(html, baseUrl, queryTokens, queryText = "") {
+    const candidates = [];
+    const pattern = /<div class="product-tile"[\s\S]*?<h3 class="product-tile__title">\s*<a href="([^"]+)"[^>]*>([\s\S]*?)<\/a>[\s\S]*?product-tile__sub--title">([\s\S]*?)<\/span>[\s\S]*?product-tile__price--final">\s*<div>([\s\S]*?)<\/div>/gi;
+    let match;
+
+    while ((match = pattern.exec(html))) {
+      const brand = stripHtml(decodeHtml(match[3]));
+      const productName = stripHtml(decodeHtml(match[2]));
+      const title = normalizeWhitespace(`${brand} ${productName}`.trim());
+      const price = parsePriceValue(stripHtml(decodeHtml(match[4])));
+      const candidate = buildCandidate(title, price, match[1], baseUrl, queryTokens, queryText);
+
+      if (candidate) {
+        candidates.push(candidate);
+      }
+    }
+
+    return candidates;
   }
 
   function extractDataPriceCardCandidates(html, baseUrl, queryTokens, queryText = "") {
@@ -1137,10 +1242,22 @@
     };
   }
 
+  function isBotChallengePage(text) {
+    const sample = String(text || "").slice(0, 12000).toLowerCase();
+
+    return (
+      sample.includes("client challenge") ||
+      sample.includes("bobcmn") ||
+      sample.includes("failureconfig") ||
+      /\/tspd\//i.test(sample) ||
+      sample.includes("_fs-ch-")
+    );
+  }
+
   function describeFetchFailure({ status = 0, error = "" } = {}) {
     const normalizedError = String(error || "").toLowerCase();
 
-    if (status === 403 || status === 401 || status === 429) {
+    if (status === 403 || status === 401 || status === 429 || String(error || "").toLowerCase().includes("bot_challenge")) {
       return "Obchod blokuje automaticku kontrolu. Overte cenu priamo na obchode.";
     }
 
@@ -1174,6 +1291,7 @@
     describeFetchFailure,
     extractProductCandidates,
     hasSearchTemplate,
+    isBotChallengePage,
     isManualOnlyShop,
     mergeDefaultSearchShops,
     MANUAL_NO_MATCH_MESSAGE,

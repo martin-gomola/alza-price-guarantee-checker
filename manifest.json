@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Alza Price Guarantee Checker",
   "description": "Compares Alza.sk prices with Garancia najlepsej ceny shops. Best-effort automation: verify final product match manually.",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "permissions": [
     "storage",
     "declarativeNetRequest"
@@ -26,6 +26,8 @@
     "https://www.4kids.sk/*",
     "https://abc-zoo.sk/*",
     "https://www.alltoys.sk/*",
+    "https://www.andreashop.sk/*",
+    "https://andreashop.sk/*",
     "https://www.benulekaren.sk/*",
     "https://www.decathlon.sk/*",
     "https://www.dracik.sk/*",
@@ -38,6 +40,8 @@
     "https://kytary.sk/*",
     "https://www.mi-store.sk/*",
     "https://mi-store.sk/*",
+    "https://www.mojadm.sk/*",
+    "https://mojadm.sk/*",
     "https://www.nay.sk/*",
     "https://www.obi.sk/*",
     "https://www.planeo.sk/*",
@@ -56,6 +60,8 @@
     "https://www.czc.cz/*",
     "https://www.datart.cz/*",
     "https://www.decathlon.cz/*",
+    "https://www.dm.cz/*",
+    "https://dm.cz/*",
     "https://www.drmax.cz/*",
     "https://www.kasa.cz/*",
     "https://www.mall.cz/*",
@@ -63,6 +69,10 @@
     "https://www.mountfield.cz/*",
     "https://www.notino.cz/*",
     "https://www.pilulka.cz/*",
+    "https://www.rossmann.cz/*",
+    "https://rossmann.cz/*",
+    "https://www.tetadrogerie.cz/*",
+    "https://tetadrogerie.cz/*",
     "https://www.sportisimo.cz/*",
     "https://www.tsbohemia.cz/*"
   ],
@@ -87,10 +97,11 @@
         "https://www.alza.cz/order*.htm*",
         "https://alza.cz/order*.htm*"
       ],
-      "css": [
-        "src/alza-cleanup.css"
+      "js": [
+        "src/settings.js",
+        "src/alza-cleanup.js"
       ],
-      "run_at": "document_start"
+      "run_at": "document_idle"
     },
     {
       "matches": [
@@ -150,10 +161,11 @@
         "https://*.heureka.sk/*",
         "https://*.heureka.cz/*"
       ],
-      "css": [
-        "src/heureka-cleanup.css"
+      "js": [
+        "src/settings.js",
+        "src/heureka-cleanup.js"
       ],
-      "run_at": "document_start"
+      "run_at": "document_idle"
     }
   ],
   "icons": {
@@ -174,6 +186,6 @@
   },
   "options_ui": {
     "page": "src/options.html",
-    "open_in_tab": false
+    "open_in_tab": true
   }
 }
