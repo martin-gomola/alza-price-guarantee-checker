@@ -32,10 +32,6 @@ The extension uses `chrome.storage.local` to save feature toggle preferences (fo
 
 The extension optionally blocks selected advertising/tracking domains on Alza and Heureka pages using Chrome's `declarativeNetRequest` API. This reduces page noise and improves comparison usability. This blocking does not collect personal data.
 
-## Contact
-
-For questions about this privacy policy, open an issue on the project's GitHub repository.
-
 ## Accuracy and Warranty Disclaimer
 
 Results are generated automatically on a best-effort basis and may be inaccurate. Always verify the final product match and price manually. This extension is provided "as is", without warranties of any kind.

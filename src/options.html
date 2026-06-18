@@ -3,121 +3,91 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Nastavenia — Alza Price Guarantee Checker</title>
+    <title>Nastavenia - Alza Price Guarantee Checker</title>
     <link rel="stylesheet" href="options.css">
   </head>
   <body>
-    <div class="app">
-      <aside class="sidebar" aria-label="Navigacia nastaveni">
-        <div class="sidebar__brand">
-          <img class="sidebar__logo" src="../icons/icon48.png" width="32" height="32" alt="">
-          <span class="sidebar__name">Alza checker</span>
+    <main class="page">
+      <header class="page__header">
+        <div class="page__brand">
+          <img class="page__logo" src="../icons/icon48.png" width="40" height="40" alt="">
+          <div>
+            <h1>Alza Price Guarantee Checker</h1>
+            <p id="about-version" class="page__version"></p>
+          </div>
         </div>
+        <p class="page__intro">
+          Volitelne upravy zobrazenia na Alze a Heureke. Porovnanie cien sa tym nemení.
+        </p>
+      </header>
 
-        <nav class="sidebar__nav">
-          <button type="button" class="nav-item nav-item--active" data-panel="general" aria-current="page">
-            <span class="nav-item__icon" aria-hidden="true">⚙️</span>
-            <span>Vseobecne</span>
-          </button>
-          <button type="button" class="nav-item" data-panel="heureka">
-            <span class="nav-item__icon" aria-hidden="true">🛡️</span>
-            <span>Heureka a sukromie</span>
-          </button>
-          <button type="button" class="nav-item" data-panel="about">
-            <span class="nav-item__icon" aria-hidden="true">ℹ️</span>
-            <span>O rozsireni</span>
-          </button>
-        </nav>
-      </aside>
+      <section class="card" aria-labelledby="alza-settings-title">
+        <h2 id="alza-settings-title" class="card__title">Alza</h2>
 
-      <main class="content">
-        <header class="content__header">
-          <h1 id="content-title">Vseobecne</h1>
-          <p id="content-subtitle">Nastavenia pre Alza.sk a Alza.cz. Porovnanie cien sa tym nemení.</p>
-        </header>
+        <label class="row" for="ui-cleanup-enabled">
+          <span class="row__text">
+            <strong>Cistenie UI</strong>
+            <span>Skryje splátky, predaj poistenia, bannery a dalsi vizualny sumar.</span>
+          </span>
+          <span class="switch">
+            <input id="ui-cleanup-enabled" type="checkbox">
+            <span class="switch__track" aria-hidden="true"></span>
+          </span>
+        </label>
 
-        <section id="panel-general" class="panel panel--active" aria-labelledby="content-title">
-          <div class="card">
-            <h2 class="card__title">Alza produktove stranky</h2>
-            <p class="card__lead">Volitelne upravy zobrazenia pri kontrole garancie najlepsej ceny.</p>
+        <label class="row row--border" for="unit-price-enabled">
+          <span class="row__text">
+            <strong>Jednotkova cena</strong>
+            <span>Cena za kg, liter alebo ks, ak sa da vypocitat z nazvu.</span>
+          </span>
+          <span class="switch">
+            <input id="unit-price-enabled" type="checkbox">
+            <span class="switch__track" aria-hidden="true"></span>
+          </span>
+        </label>
+      </section>
 
-            <label class="row" for="ui-cleanup-enabled">
-              <span class="row__text">
-                <strong>Cistenie UI</strong>
-                <span>Skryje splátky, predaj poistenia, bannery a dalsi vizualny sumar.</span>
-              </span>
-              <span class="switch">
-                <input id="ui-cleanup-enabled" type="checkbox">
-                <span class="switch__track" aria-hidden="true"></span>
-              </span>
-            </label>
+      <section class="card" aria-labelledby="heureka-settings-title">
+        <h2 id="heureka-settings-title" class="card__title">Heureka</h2>
 
-            <label class="row row--border" for="unit-price-enabled">
-              <span class="row__text">
-                <strong>Jednotkova cena</strong>
-                <span>Zobrazi cenu za 1 kg, 1 liter alebo ks tam, kde sa da vypocitat z nazvu produktu.</span>
-              </span>
-              <span class="switch">
-                <input id="unit-price-enabled" type="checkbox">
-                <span class="switch__track" aria-hidden="true"></span>
-              </span>
-            </label>
-          </div>
-        </section>
+        <label class="row" for="heureka-cleanup-enabled">
+          <span class="row__text">
+            <strong>Skryt reklamy a sponzorovane bloky</strong>
+            <span>Na heureka.sk a heureka.cz skryje bannery a oznacene reklamne prvky.</span>
+          </span>
+          <span class="switch">
+            <input id="heureka-cleanup-enabled" type="checkbox">
+            <span class="switch__track" aria-hidden="true"></span>
+          </span>
+        </label>
+      </section>
 
-        <section id="panel-heureka" class="panel" hidden aria-labelledby="content-title">
-          <div class="card">
-            <h2 class="card__title">Heureka.sk a Heureka.cz</h2>
-            <p class="card__lead">Transparentne nastavenia pre stranky, kam casto prechadzate pri manualnej kontrole cien.</p>
+      <section class="card card--muted" aria-labelledby="privacy-title">
+        <h2 id="privacy-title" class="card__title">Sukromie a sitove pravidla</h2>
+        <p class="card__body">
+          Na Alze a Heureke blokujeme vybrane reklamne a analyticke domeny
+          (Google Ads, Criteo, Facebook, Hotjar, Microsoft Clarity) cez pravidla prehliadaca.
+          Vzdy zapnute.
+        </p>
+        <ul class="card__list">
+          <li>Bez historie prehliadania a osobnych udajov.</li>
+          <li>Blokovanie prebieha len v prehliadaci.</li>
+          <li>Na porovnanie cien idu poziadavky len na verejne stranky obchodov z garancie.</li>
+        </ul>
+        <p class="card__body">
+          <a class="link" href="privacy.html">Zasady o sukromi</a>
+        </p>
+      </section>
 
-            <label class="row" for="heureka-cleanup-enabled">
-              <span class="row__text">
-                <strong>Skryt reklamy a sponzorovane bloky</strong>
-                <span>Skryje bannery a oznacene reklamne prvky cez CSS. Vypnutim sa stranka zobrazi v povodnom stave.</span>
-              </span>
-              <span class="switch">
-                <input id="heureka-cleanup-enabled" type="checkbox">
-                <span class="switch__track" aria-hidden="true"></span>
-              </span>
-            </label>
-          </div>
+      <footer class="page__footer">
+        <p>
+          Porovna cenu na Alze s podporovanymi obchodmi pri garancii najlepsej ceny.
+          Vysledky su automaticke. Pred podanim overte produkt a cenu manualne.
+        </p>
+      </footer>
 
-          <div class="card card--info">
-            <h2 class="card__title">Sieťove pravidla (vzdy zapnuté)</h2>
-            <p class="card__body">
-              Rozsirenie blokuje vybrane reklamne a analytické domény tretich strán
-              (napr. Google Ads, Criteo, Facebook, Hotjar, Microsoft Clarity) na stránkach
-              <strong>Alza</strong> a <strong>Heureka</strong> pomocou pravidiel prehliadaca
-              (<code>declarativeNetRequest</code>).
-            </p>
-            <ul class="card__list">
-              <li>Nezbierame historiu prehliadania ani osobne udaje.</li>
-              <li>Blokovanie prebieha lokalne v prehliadaci.</li>
-              <li>Na porovnanie cien sa odosielaju len poziadavky na verejne stranky obchodov z garancie.</li>
-            </ul>
-            <p class="card__body">
-              <a class="link" href="https://github.com/martin-gomola/alza-price-guarantee-checker/blob/main/PRIVACY.md" target="_blank" rel="noopener noreferrer">Uplne znenie zasad o sukromi</a>
-            </p>
-          </div>
-        </section>
-
-        <section id="panel-about" class="panel" hidden aria-labelledby="content-title">
-          <div class="card">
-            <h2 class="card__title">Alza Price Guarantee Checker</h2>
-            <p class="card__body" id="about-version"></p>
-            <p class="card__body">
-              Pomaha overit garanciu najlepsej ceny porovnanim ceny na Alze s podporovanymi konkurencnymi obchodmi.
-              Vysledky su automatizovane a na zodpovednost pouzivatela — vzdy overte produkt a cenu manualne.
-            </p>
-            <p class="card__body">
-              <a class="link" href="https://github.com/martin-gomola/alza-price-guarantee-checker" target="_blank" rel="noopener noreferrer">GitHub repozitar</a>
-            </p>
-          </div>
-        </section>
-
-        <p id="status" class="status" role="status" aria-live="polite"></p>
-      </main>
-    </div>
+      <p id="status" class="status" role="status" aria-live="polite"></p>
+    </main>
 
     <script src="settings.js"></script>
     <script src="options.js"></script>

@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Alza Price Guarantee Checker",
   "description": "Compares Alza.sk prices with Garancia najlepsej ceny shops. Best-effort automation: verify final product match manually.",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "permissions": [
     "storage",
     "declarativeNetRequest"
@@ -187,5 +187,21 @@
   "options_ui": {
     "page": "src/options.html",
     "open_in_tab": true
-  }
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "src/alza-cleanup.css",
+        "src/heureka-cleanup.css"
+      ],
+      "matches": [
+        "https://www.alza.sk/*",
+        "https://alza.sk/*",
+        "https://www.alza.cz/*",
+        "https://alza.cz/*",
+        "https://*.heureka.sk/*",
+        "https://*.heureka.cz/*"
+      ]
+    }
+  ]
 }

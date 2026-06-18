@@ -1,6 +1,6 @@
 {
   "name": "alza-price-guarantee-checker",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "scripts": {
     "test": "node --test",
     "build": "rm -rf dist && mkdir -p dist && zip -r dist/alza-price-guarantee-checker-v$(node -p \"require('./package.json').version\").zip manifest.json icons/ src/ PRIVACY.md"

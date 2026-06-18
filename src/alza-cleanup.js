@@ -11,7 +11,18 @@
     return;
   }
 
-  const style = document.createElement("style");
-  style.textContent = await fetch(chrome.runtime.getURL("src/alza-cleanup.css")).then((response) => response.text());
-  (document.head || document.documentElement).append(style);
+  try {
+    const cssUrl = chrome.runtime.getURL("src/alza-cleanup.css");
+    const response = await fetch(cssUrl);
+
+    if (!response.ok) {
+      return;
+    }
+
+    const style = document.createElement("style");
+    style.textContent = await response.text();
+    (document.head || document.documentElement).append(style);
+  } catch {
+    // Ignore fetch failures (e.g. resource unavailable during extension reload).
+  }
 })();
