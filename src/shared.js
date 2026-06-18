@@ -1160,6 +1160,11 @@
   }
 
   const MANUAL_NO_MATCH_MESSAGE = "Nenasla sa zhodna ponuka. Skontrolujte vyhladavanie na obchode.";
+  const MANUAL_ONLY_SHOPS = new Set(["heureka.sk", "heureka.cz"]);
+
+  function isManualOnlyShop(domain) {
+    return MANUAL_ONLY_SHOPS.has(domain);
+  }
 
   const api = {
     buildSearchQueries,
@@ -1169,6 +1174,7 @@
     describeFetchFailure,
     extractProductCandidates,
     hasSearchTemplate,
+    isManualOnlyShop,
     mergeDefaultSearchShops,
     MANUAL_NO_MATCH_MESSAGE,
     normalizeWhitespace,

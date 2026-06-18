@@ -40,3 +40,9 @@ test("describes timeouts and network failures in plain language", () => {
     "Nepodarilo sa spojit s obchodom. Skuste to priamo na obchode."
   );
 });
+
+test("marks Heureka as manual-only", () => {
+  assert.equal(shared.isManualOnlyShop("heureka.sk"), true);
+  assert.equal(shared.isManualOnlyShop("heureka.cz"), true);
+  assert.equal(shared.isManualOnlyShop("drmax.sk"), false);
+});

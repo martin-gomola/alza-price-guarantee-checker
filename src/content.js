@@ -360,7 +360,6 @@
     "decathlon.sk",
     "dracik.sk",
     "drmax.sk",
-    "heureka.sk",
     "hudysport.sk",
     "istores.sk",
     "istyle.sk",
@@ -378,7 +377,6 @@
     "datart.cz",
     "decathlon.cz",
     "drmax.cz",
-    "heureka.cz",
     "kasa.cz",
     "mall.cz",
     "mironet.cz",
@@ -420,6 +418,16 @@
   async function checkShop(domain, productName) {
     const searchQueries = shared.buildSearchQueries(productName);
     const searchRequests = searchQueries.flatMap((query) => shared.buildSearchRequests(domain, query));
+
+    if (shared.isManualOnlyShop(domain)) {
+      return {
+        domain,
+        searchUrl: searchRequests[0]?.displayUrl,
+        state: "manual",
+        message: shared.describeFetchFailure({ status: 403 })
+      };
+    }
+
     let lastFailure = null;
     let hadSuccessfulResponse = false;
 

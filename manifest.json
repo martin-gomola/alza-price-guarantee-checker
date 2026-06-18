@@ -2,12 +2,10 @@
   "manifest_version": 3,
   "name": "Alza Price Guarantee Checker",
   "description": "Compares Alza.sk prices with Garancia najlepsej ceny shops. Best-effort automation: verify final product match manually.",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "permissions": [
     "storage",
-    "declarativeNetRequest",
-    "tabs",
-    "scripting"
+    "declarativeNetRequest"
   ],
   "declarative_net_request": {
     "rule_resources": [

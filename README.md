@@ -10,7 +10,7 @@ Supporting UX features (unit price, cleanup, ad/tracker suppression on relevant 
 
 ## Features
 
-- **Price comparison** — searches 20+ Slovak and 13+ Czech e-shops (heureka, drmax, nay, czc, mall, datart, etc.) and extracts the best matching price
+- **Price comparison** — searches 20+ Slovak and 13+ Czech e-shops (drmax, nay, czc, mall, datart, etc.) and extracts the best matching price; Heureka opens a manual search link (Cloudflare blocks automated fetch)
 - **Two-step verification** — fetches competitor detail pages for accurate pricing via JSON-LD, OpenGraph meta tags, and DOM extraction
 - **Unit price** — shows price per kg/liter on listing and detail pages; price per piece for LEGO sets
 - **Ad blocking** — `declarativeNetRequest` rules kill Google Ads, Criteo, Facebook, Hotjar, Clarity, and 10 other tracking domains before they load
@@ -21,7 +21,6 @@ Supporting UX features (unit price, cleanup, ad/tracker suppression on relevant 
 
 - **`storage`** — saves on/off toggles for UI cleanup and unit-price display.
 - **`declarativeNetRequest`** — blocks selected ad/tracker requests on Alza/Heureka pages to reduce noise and speed up price-check UX.
-- **`tabs` / `scripting`** — opens a short-lived background tab on Heureka only, so Cloudflare-protected search pages can load in a real browser context.
 - **Host permissions** — required to fetch public search/result pages from shops that participate in the Alza guarantee comparison flow.
 
 ## Install
