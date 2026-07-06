@@ -99,6 +99,7 @@
       ],
       "js": [
         "src/settings.js",
+        "src/style-injector.js",
         "src/alza-cleanup.js"
       ],
       "run_at": "document_idle"
@@ -121,8 +122,10 @@
         "https://alza.cz/order*.htm*"
       ],
       "js": [
+        "src/shop-catalog.js",
         "src/shared.js",
         "src/settings.js",
+        "src/price-guarantee.js",
         "src/content.js"
       ],
       "css": [
@@ -149,6 +152,7 @@
       ],
       "js": [
         "src/settings.js",
+        "src/unitprice-calculator.js",
         "src/unitprice.js"
       ],
       "css": [
@@ -163,6 +167,7 @@
       ],
       "js": [
         "src/settings.js",
+        "src/style-injector.js",
         "src/heureka-cleanup.js"
       ],
       "run_at": "document_idle"

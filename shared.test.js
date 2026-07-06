@@ -1,7 +1,10 @@
 const assert = require("node:assert/strict");
 const test = require("node:test");
 
+const shopCatalog = require("./src/shop-catalog.js");
 const shared = require("./src/shared.js");
+const priceGuarantee = require("./src/price-guarantee.js");
+const unitPriceCalculator = require("./src/unitprice-calculator.js");
 
 test("builds mi-store.sk search requests", () => {
   const [request] = shared.buildSearchRequests("mi-store.sk", "Samsung Galaxy Tab S10 FE+");
@@ -159,4 +162,82 @@ test("extracts rossmann.cz product tiles from ajax HTML", () => {
   assert.equal(candidate.title, "Bref Tuhý WC blok Color Aktiv Eucalyptus");
   assert.equal(candidate.price.value, 119);
   assert.match(candidate.url, /tuhy-wc-blok-color-aktiv-2/);
+});
+
+test("shop catalog owns search and detail verification policy", () => {
+  assert.equal(shopCatalog.hasSearchTemplate("mi-store.sk"), true);
+  assert.equal(shopCatalog.isManualOnly("heureka.sk"), true);
+  assert.equal(shopCatalog.shouldVerifyDetailPrice("drmax.sk"), true);
+  assert.equal(shopCatalog.shouldVerifyDetailPrice("heureka.sk"), false);
+  assert.deepEqual(shopCatalog.getDefaultSearchShops("cz"), ["heureka.cz"]);
+});
+
+test("price guarantee checker returns manual rows for manual-only shops", async () => {
+  const checker = priceGuarantee.createPriceGuaranteeChecker({
+    fetchSearchRequest: async () => {
+      throw new Error("manual shops should not be fetched");
+    }
+  });
+
+  const result = await checker.checkShop("heureka.sk", "Samsung Galaxy");
+
+  assert.equal(result.domain, "heureka.sk");
+  assert.equal(result.state, "manual");
+  assert.match(result.searchUrl, /heureka\.sk/);
+  assert.match(result.message, /blokuje automaticku kontrolu/);
+});
+
+test("price guarantee checker verifies detail price behind its interface", async () => {
+  const calls = [];
+  const checker = priceGuarantee.createPriceGuaranteeChecker({
+    fetchSearchRequest: async (request) => {
+      calls.push(request.url);
+
+      if (request.url.includes("drmax.sk/search")) {
+        return {
+          ok: true,
+          status: 200,
+          url: request.url,
+          text: `
+            <a href="/produkt/philips-hue-e27">Philips Hue White E27</a>
+            <span>14,90 €</span>
+          `
+        };
+      }
+
+      return {
+        ok: true,
+        status: 200,
+        url: "https://www.drmax.sk/produkt/philips-hue-e27",
+        text: `
+          <html>
+            <head><link rel="canonical" href="https://www.drmax.sk/produkt/philips-hue-e27"></head>
+            <body><h1>Philips Hue White E27</h1><span>12,90 €</span></body>
+          </html>
+        `
+      };
+    }
+  });
+
+  const result = await checker.checkShop("drmax.sk", "Philips Hue White E27");
+
+  assert.equal(result.state, "found");
+  assert.equal(result.price.value, 12.9);
+  assert.equal(calls.length, 2);
+});
+
+test("unit price calculator parses quantities and formats Slovak per-piece prices", () => {
+  const calculator = unitPriceCalculator.createUnitPriceCalculator({ locale: "sk" });
+  const quantity = calculator.extractQuantity("LEGO stavebnica 500 dielikov");
+  const unitPrice = calculator.computeUnitPrice(19.99, quantity);
+
+  assert.deepEqual(quantity, { amount: 500, unit: "pcs" });
+  assert.equal(unitPrice.text, "4,0 ct/ks (500 ks)");
+});
+
+test("unit price calculator parses Czech whole-crown prices", () => {
+  const calculator = unitPriceCalculator.createUnitPriceCalculator({ locale: "cz" });
+
+  assert.equal(calculator.extractFirstPrice("Cena 1 299,-"), 1299);
+  assert.equal(calculator.hasPriceText("Cena 1 299,-"), true);
 });

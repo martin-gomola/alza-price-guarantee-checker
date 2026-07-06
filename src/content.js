@@ -1,8 +1,9 @@
 (async function runAlzaChecker() {
   const shared = window.AlzaCheckerShared;
   const settingsApi = window.AlzaCheckerSettings;
+  const priceGuaranteeApi = window.AlzaCheckerPriceGuarantee;
 
-  if (!shared || document.getElementById("alza-checker-root")) {
+  if (!shared || !priceGuaranteeApi || document.getElementById("alza-checker-root")) {
     return;
   }
 
@@ -154,6 +155,10 @@
       body: request.body
     });
   }
+
+  const priceGuaranteeChecker = priceGuaranteeApi.createPriceGuaranteeChecker({
+    fetchSearchRequest
+  });
 
   function getVisibleSupportedShops() {
     const roots = [...document.querySelectorAll(SELECTORS.guaranteeRoots)]
@@ -367,154 +372,6 @@
     }
   }
 
-  const VERIFY_PRICE_DOMAINS = new Set([
-    "4kids.sk",
-    "abc-zoo.sk",
-    "alltoys.sk",
-    "benulekaren.sk",
-    "decathlon.sk",
-    "dracik.sk",
-    "drmax.sk",
-    "hudysport.sk",
-    "istores.sk",
-    "istyle.sk",
-    "kytary.sk",
-    "mojadm.sk",
-    "nay.sk",
-    "petcenter.sk",
-    "planeo.sk",
-    "pompo.sk",
-    "profizoo.sk",
-    "smarty.sk",
-    "spokojnypes.sk",
-    "superzoo.sk",
-    "tetadrogerie.sk",
-    "tetadrogerie.cz",
-    "czc.cz",
-    "datart.cz",
-    "decathlon.cz",
-    "dm.cz",
-    "drmax.cz",
-    "kasa.cz",
-    "mall.cz",
-    "mironet.cz",
-    "notino.cz",
-    "pilulka.cz",
-    "rossmann.cz",
-    "sportisimo.cz",
-    "tsbohemia.cz"
-  ]);
-
-  async function verifyPriceFromDetailPage(candidate, productName) {
-    if (!candidate.url || shared.isBlockedProductUrl(candidate.url)) {
-      return candidate;
-    }
-
-    const response = await fetchSearchRequest({
-      url: candidate.url,
-      displayUrl: candidate.url,
-      method: "GET"
-    });
-
-    if (!response.ok || !response.text) {
-      return candidate;
-    }
-
-    const [detail] = shared.extractProductCandidates(response.text, response.url || candidate.url, productName);
-
-    if (detail?.price) {
-      return {
-        ...candidate,
-        title: detail.title || candidate.title,
-        price: detail.price,
-        url: detail.url || candidate.url
-      };
-    }
-
-    return candidate;
-  }
-
-  async function checkShop(domain, productName) {
-    const searchQueries = shared.buildSearchQueries(productName);
-    const searchRequests = searchQueries.flatMap((query) => shared.buildSearchRequests(domain, query));
-
-    if (shared.isManualOnlyShop(domain)) {
-      return {
-        domain,
-        searchUrl: searchRequests[0]?.displayUrl,
-        state: "manual",
-        message: shared.describeFetchFailure({ status: 403 })
-      };
-    }
-
-    let lastFailure = null;
-    let hadSuccessfulResponse = false;
-
-    for (const searchRequest of searchRequests) {
-      const response = await fetchSearchRequest(searchRequest);
-
-      if (!response.ok || !response.text) {
-        lastFailure = { status: response.status || 0, error: response.error || "" };
-        continue;
-      }
-
-      if (shared.isBotChallengePage(response.text)) {
-        lastFailure = { status: 403, error: "bot_challenge" };
-        continue;
-      }
-
-      hadSuccessfulResponse = true;
-      const candidates = shared.extractProductCandidates(
-        response.text,
-        response.url || searchRequest.displayUrl,
-        searchRequest.matchQuery || productName
-      );
-
-      if (candidates.length > 0) {
-        let bestCandidate = candidates[0];
-
-        if (VERIFY_PRICE_DOMAINS.has(domain) && bestCandidate.url) {
-          bestCandidate = await verifyPriceFromDetailPage(bestCandidate, productName);
-        }
-
-        return {
-          domain,
-          searchUrl: searchRequest.displayUrl,
-          state: "found",
-          ...bestCandidate
-        };
-      }
-    }
-
-    if (hadSuccessfulResponse) {
-      return {
-        domain,
-        searchUrl: searchRequests[0]?.displayUrl,
-        state: "manual",
-        message: shared.MANUAL_NO_MATCH_MESSAGE
-      };
-    }
-
-    const failureMessage = lastFailure
-      ? shared.describeFetchFailure(lastFailure)
-      : "Nepodarilo sa nacitat obchod.";
-
-    return {
-      domain,
-      searchUrl: searchRequests[0]?.displayUrl,
-      state: searchRequests[0]?.displayUrl ? "manual" : "error",
-      message: failureMessage
-    };
-  }
-
-  function createFailedShopResult(domain, error) {
-    return {
-      domain,
-      state: "error",
-      message: shared.describeFetchFailure({ error: error?.message || "" })
-    };
-  }
-
   async function runCheck(button) {
     if (state.isRunning) {
       return;
@@ -535,42 +392,29 @@
     renderResults([]);
 
     try {
-      state.shops = shared.mergeDefaultSearchShops(await loadSupportedShops(), getLocale());
-      const supportedShops = state.shops.filter((domain) => shared.hasSearchTemplate(domain));
-      const unsupportedShops = state.shops.filter((domain) => !shared.hasSearchTemplate(domain));
+      state.shops = await loadSupportedShops();
+      const plannedShops = shared.mergeDefaultSearchShops(state.shops, getLocale());
+      const supportedShops = plannedShops.filter((domain) => shared.hasSearchTemplate(domain));
 
       if (supportedShops.length === 0) {
         renderStatus("Nenasiel som obchody na kontrolu. Otvor Garancia najlepsej ceny na Alze a skus znova.");
         return;
       }
 
-      const results = [];
+      const checkResult = await priceGuaranteeChecker.checkShops({
+        shops: state.shops,
+        locale: getLocale(),
+        productName,
+        onProgress: ({ domain, checkedCount, totalCount }) => {
+          renderStatus(`Kontrolujem ${domain} (${checkedCount + 1}/${totalCount})...`);
+        },
+        onResult: renderResults
+      });
 
-      for (const domain of supportedShops) {
-        renderStatus(`Kontrolujem ${domain} (${results.length + 1}/${supportedShops.length})...`);
-        let result;
-
-        try {
-          result = await checkShop(domain, productName);
-        } catch (error) {
-          result = createFailedShopResult(domain, error);
-        }
-
-        results.push(result);
-        renderResults(results);
-      }
-
-      for (const domain of unsupportedShops) {
-        results.push({
-          domain,
-          state: "manual",
-          searchUrl: `https://${domain}`
-        });
-      }
-      renderResults(results);
+      renderResults(checkResult.results);
 
       renderToggle();
-      renderStatus(`Hotovo. Skontrolovane obchody: ${supportedShops.length}.`);
+      renderStatus(`Hotovo. Skontrolovane obchody: ${checkResult.supportedCount}.`);
     } catch (error) {
       renderStatus(`Chyba: ${error.message}`);
     } finally {

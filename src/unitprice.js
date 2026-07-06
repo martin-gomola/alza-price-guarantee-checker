@@ -1,5 +1,8 @@
 (async function runUnitPrice() {
   const settingsApi = window.AlzaCheckerSettings;
+  const calculatorApi = window.AlzaCheckerUnitPriceCalculator;
+  if (!calculatorApi) return;
+
   if (settingsApi) {
     const settings = await settingsApi.getSettings();
     if (!settings.unitPriceEnabled) return;
@@ -10,104 +13,9 @@
   const DEBOUNCE_MS = 300;
   let debounceTimer = null;
 
-  const MULTI_PATTERN = /(\d+)\s*[×x]\s*(\d+(?:[.,]\d+)?)\s*(g|kg|ml|l)\b/i;
-  const PIECES_PATTERN = /(\d+)\s*(?:dielikov|dielov|dílků|dílů|pieces|pcs|ks)\b/i;
-  const QUANTITY_PATTERNS = [
-    { regex: /(\d+(?:[.,]\d+)?)\s*kg\b/i, unit: "kg" },
-    { regex: /(\d+(?:[.,]\d+)?)\s*g\b/i, unit: "g" },
-    { regex: /(\d+(?:[.,]\d+)?)\s*l\b/i, unit: "l" },
-    { regex: /(\d+(?:[.,]\d+)?)\s*ml\b/i, unit: "ml" }
-  ];
-
-  function parseNum(value) {
-    return Number.parseFloat(String(value).replace(",", "."));
-  }
-
-  function extractQuantity(text) {
-    const s = String(text || "");
-
-    const multi = s.match(MULTI_PATTERN);
-    if (multi) {
-      return { amount: parseNum(multi[1]) * parseNum(multi[2]), unit: multi[3].toLowerCase() };
-    }
-
-    for (const { regex, unit } of QUANTITY_PATTERNS) {
-      const m = s.match(regex);
-      if (m) {
-        const amount = parseNum(m[1]);
-        if (amount > 0) {
-          return { amount, unit };
-        }
-      }
-    }
-
-    const pieces = s.match(PIECES_PATTERN);
-    if (pieces) {
-      const amount = parseNum(pieces[1]);
-      if (amount >= 10) {
-        return { amount, unit: "pcs" };
-      }
-    }
-
-    return null;
-  }
-
-  function toBase(amount, unit) {
-    switch (unit) {
-      case "kg": return { value: amount, label: "kg" };
-      case "g": return { value: amount / 1000, label: "kg" };
-      case "l": return { value: amount, label: "l" };
-      case "ml": return { value: amount / 1000, label: "l" };
-      case "pcs": return { value: amount, label: "ks", perPiece: true };
-      default: return null;
-    }
-  }
-
-  const isCzLocale = /alza\.cz/i.test(window.location.hostname);
-  const currencySymbol = isCzLocale ? "K\u010d" : "\u20ac";
-  const currencyLocale = isCzLocale ? "cs-CZ" : "sk-SK";
-  const MAX_SENSIBLE_UNIT_PRICE = isCzLocale ? 5000 : 200;
-
-  function hasPriceText(text) {
-    return text.includes(currencySymbol) || (isCzLocale && /\d\s*,-/.test(text));
-  }
-
-  function computeUnitPrice(price, quantity) {
-    if (!quantity || !price || price <= 0) return null;
-    const base = toBase(quantity.amount, quantity.unit);
-    if (!base || base.value <= 0) return null;
-    const perUnit = price / base.value;
-    if (!Number.isFinite(perUnit) || perUnit <= 0) return null;
-
-    if (!base.perPiece && perUnit > MAX_SENSIBLE_UNIT_PRICE) return null;
-
-    let text;
-    if (base.perPiece) {
-      if (isCzLocale) {
-        text = `${perUnit.toFixed(2).replace(".", ",")} K\u010d/ks (${Math.round(base.value)} ks)`;
-      } else {
-        const cents = perUnit * 100;
-        text = cents < 100
-          ? `${cents.toFixed(1).replace(".", ",")} ct/ks (${Math.round(base.value)} ks)`
-          : `${perUnit.toFixed(2).replace(".", ",")} \u20ac/ks (${Math.round(base.value)} ks)`;
-      }
-    } else {
-      text = perUnit < 100
-        ? `${perUnit.toFixed(2).replace(".", ",")} ${currencySymbol}/1 ${base.label}`
-        : `${Math.round(perUnit).toLocaleString(currencyLocale)} ${currencySymbol}/1 ${base.label}`;
-    }
-
-    return { value: perUnit, text };
-  }
-
-  function extractFirstPrice(text) {
-    const s = String(text || "");
-    const m = s.match(/(\d[\d\s\u00a0]*(?:,\d{1,2})?)\s*(?:\u20ac|K\u010d|CZK)/i)
-      || (isCzLocale && s.match(/(\d[\d\s\u00a0]*)\s*,-/));
-    if (!m) return null;
-    const value = parseNum(m[1].replace(/[\s\u00a0]/g, ""));
-    return Number.isFinite(value) && value > 0 ? value : null;
-  }
+  const calculator = calculatorApi.createUnitPriceCalculator({
+    locale: /alza\.cz/i.test(window.location.hostname) ? "cz" : "sk"
+  });
 
   function createLabel(unitPrice) {
     const el = document.createElement("span");
@@ -125,7 +33,7 @@
     );
 
     for (const priceEl of priceElements) {
-      if (!hasPriceText(priceEl.textContent)) continue;
+      if (!calculator.hasPriceText(priceEl.textContent)) continue;
       if (priceEl.closest(`[${UNIT_PRICE_ATTR}]`)) continue;
 
       const card = findCardAncestor(priceEl);
@@ -164,7 +72,7 @@
 
       const links = fallback.querySelectorAll("a[href]");
       const hasTitle = [...links].some(a => a.textContent.trim().length > 10);
-      const hasPrice = hasPriceText(fallback.textContent);
+      const hasPrice = calculator.hasPriceText(fallback.textContent);
       if (hasTitle && hasPrice) return fallback;
     }
 
@@ -194,7 +102,7 @@
       const text = el.textContent.trim();
       if (
         text.length > 10 && text.length < 300 &&
-        !hasPriceText(text) &&
+        !calculator.hasPriceText(text) &&
         /\d+\s*(g|kg|ml|l)\b/i.test(text)
       ) {
         return text;
@@ -212,10 +120,10 @@
 
     for (const el of priceEls) {
       const text = el.textContent;
-      if (!hasPriceText(text)) continue;
+      if (!calculator.hasPriceText(text)) continue;
       if (/\/1?\s*(kg|l|ks|g|ml)\b/.test(text)) continue;
 
-      const price = extractFirstPrice(text);
+      const price = calculator.extractFirstPrice(text);
       if (!price) continue;
 
       const isPrimary = /price-box__price|c2|prc|our-price/i.test(el.className || "");
@@ -226,12 +134,12 @@
 
     if (firstMatch) return firstMatch;
 
-    const fallbackPrice = extractFirstPrice(card.textContent);
+    const fallbackPrice = calculator.extractFirstPrice(card.textContent);
     return fallbackPrice ? { price: fallbackPrice, element: null } : null;
   }
 
   function hasExistingUnitPrice(card) {
-    return /\d+[.,]\d+\s*(?:€|Kč|CZK|,-)\s*\/\s*1?\s*(kg|l|ks|g|ml)\b/i.test(card.textContent);
+    return calculator.hasExistingUnitPrice(card.textContent);
   }
 
   function processCard(card) {
@@ -242,14 +150,14 @@
 
     const title = getCardTitle(card);
     const desc = getCardDescription(card);
-    const quantity = extractQuantity(title) || extractQuantity(desc);
+    const quantity = calculator.extractQuantity(title) || calculator.extractQuantity(desc);
 
     if (!quantity) return;
 
     const priceInfo = getCardPrice(card);
     if (!priceInfo) return;
 
-    const unitPrice = computeUnitPrice(priceInfo.price, quantity);
+    const unitPrice = calculator.computeUnitPrice(priceInfo.price, quantity);
     if (!unitPrice) return;
 
     const label = createLabel(unitPrice);
@@ -283,7 +191,7 @@
     for (const selector of PRICE_SELECTORS) {
       const el = document.querySelector(selector);
       if (el) {
-        const price = extractFirstPrice(el.textContent);
+        const price = calculator.extractFirstPrice(el.textContent);
         if (price) return price;
       }
     }
@@ -295,7 +203,7 @@
 
     for (const child of priceArea.children) {
       if (child.querySelector(`[${UNIT_PRICE_ATTR}]`)) continue;
-      const price = extractFirstPrice(child.textContent);
+      const price = calculator.extractFirstPrice(child.textContent);
       if (price) return price;
     }
 
@@ -311,13 +219,13 @@
     );
     const desc = descEl?.textContent?.trim() ?? "";
 
-    const quantity = extractQuantity(title) || extractQuantity(desc);
+    const quantity = calculator.extractQuantity(title) || calculator.extractQuantity(desc);
     if (!quantity) return;
 
     const price = getDetailPrice();
     if (!price) return;
 
-    const unitPrice = computeUnitPrice(price, quantity);
+    const unitPrice = calculator.computeUnitPrice(price, quantity);
     if (!unitPrice) return;
 
     const label = createLabel(unitPrice);

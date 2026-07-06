@@ -1,4 +1,4 @@
-importScripts("shared.js");
+importScripts("shop-catalog.js", "shared.js");
 
 const FETCH_TIMEOUT_MS = 10000;
 
