@@ -19,7 +19,7 @@ In DevTools or the fixture, locate one product card/tile. Note:
 - Title location (`h3`, `alt`, `.c-product-card__title`, …)
 - Price location (`.product-tile__price--final`, meta tags, JSON-LD)
 
-## 3. Add extractor in `src/shared.js`
+## 3. Add extractor in `src/candidate-extraction.js`
 
 - Name: `extract{Shop}Candidates(html, baseUrl, queryTokens, queryText)`
 - Use `buildCandidate()` for scoring/filtering consistency
@@ -32,16 +32,16 @@ Keep regex/HTML parsing minimal — one pattern per shop, mirror existing extrac
 ```javascript
 test("extracts example.cz product cards", () => {
   const html = `...minimal realistic snippet...`;
-  const [candidate] = shared.extractProductCandidates(html, "https://www.example.cz/", "query");
+  const candidate = candidateExtraction.findBestCandidate(html, "https://www.example.cz/", "query");
   assert.equal(candidate.price.value, 119);
 });
 ```
 
 Do not depend on live fetch in unit tests.
 
-## 5. Optional: VERIFY_PRICE_DOMAINS
+## 5. Optional: detail verification
 
-Add domain to `VERIFY_PRICE_DOMAINS` in `src/content.js` when search-result prices are promos/stale but detail pages are reliable.
+Set `verifyDetailPrice: true` in the domain's `src/shop-catalog.js` policy when search-result prices are promos/stale but detail pages are reliable.
 
 ## 6. Update skill references
 

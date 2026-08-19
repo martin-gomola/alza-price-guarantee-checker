@@ -125,6 +125,8 @@
         "src/shop-catalog.js",
         "src/shared.js",
         "src/settings.js",
+        "src/candidate-extraction.js",
+        "src/shop-planning.js",
         "src/price-guarantee.js",
         "src/content.js"
       ],

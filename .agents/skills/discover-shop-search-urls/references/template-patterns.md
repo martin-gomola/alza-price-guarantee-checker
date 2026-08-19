@@ -35,7 +35,7 @@ Try `{queryPlus}` first, then `{query}`.
 |---------|------------|
 | 403/429 from fetch | Manual fallback; browser-like headers in `background.js` |
 | 200 HTML, 0 products, `< 15 KB` | SPA shell (dm.cz) — inspect Network tab |
-| 200 HTML, prices visible, 0 candidates | Shop-specific extractor in `shared.js` |
+| 200 HTML, prices visible, no candidate | Shop-specific extractor in `candidate-extraction.js` |
 | Display page empty, `data-ajax-url` in HTML | Dual template (rossmann.cz pattern) |
 | POST body in Network tab | Dual template with `method`/`body` (abc-zoo.sk) |
 
@@ -52,5 +52,5 @@ See [failure-modes.md](failure-modes.md) and [parser-integration.md](parser-inte
 
 - [ ] `--probe` returns `template_ok` (not just `--discover` 200)
 - [ ] `displayUrl` opens correct search in browser
-- [ ] `npm test` includes `buildSearchRequests` + extractor fixture if applicable
+- [ ] `npm test` includes a shop-plan request + candidate-extraction fixture if applicable
 - [ ] Extension panel shows price or intentional manual message

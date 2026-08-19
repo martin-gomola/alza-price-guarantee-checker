@@ -1,10 +1,12 @@
 (function attachPriceGuarantee(root) {
   const shared = root.AlzaCheckerShared || (typeof require !== "undefined" ? require("./shared.js") : null);
   const shopCatalog = root.AlzaCheckerShopCatalog || (typeof require !== "undefined" ? require("./shop-catalog.js") : null);
+  const candidateExtraction = root.AlzaCheckerCandidateExtraction || (typeof require !== "undefined" ? require("./candidate-extraction.js") : null);
+  const shopPlanning = root.AlzaCheckerShopPlanning || (typeof require !== "undefined" ? require("./shop-planning.js") : null);
 
   function createPriceGuaranteeChecker({ fetchSearchRequest } = {}) {
-    if (!shared || !shopCatalog) {
-      throw new Error("Price guarantee checker requires shared helpers and shop catalog.");
+    if (!shared || !shopCatalog || !candidateExtraction || !shopPlanning) {
+      throw new Error("Price guarantee checker requires shared helpers, shop catalog, candidate extraction, and shop planning.");
     }
 
     if (typeof fetchSearchRequest !== "function") {
@@ -12,7 +14,7 @@
     }
 
     async function verifyPriceFromDetailPage(candidate, productName) {
-      if (!candidate.url || shared.isBlockedProductUrl(candidate.url)) {
+      if (!candidate.url) {
         return candidate;
       }
 
@@ -26,7 +28,7 @@
         return candidate;
       }
 
-      const [detail] = shared.extractProductCandidates(response.text, response.url || candidate.url, productName);
+      const detail = candidateExtraction.findBestCandidate(response.text, response.url || candidate.url, productName);
 
       if (detail?.price) {
         return {
@@ -40,15 +42,13 @@
       return candidate;
     }
 
-    async function checkShop(domain, productName) {
-      const normalizedDomain = shopCatalog.normalizeDomain(domain);
-      const searchQueries = shared.buildSearchQueries(productName);
-      const searchRequests = searchQueries.flatMap((query) => shared.buildSearchRequests(normalizedDomain, query));
+    async function checkPlannedShop(shopPlan, productName) {
+      const { domain, mode, requests, verifyDetailPrice } = shopPlan;
 
-      if (shopCatalog.isManualOnly(normalizedDomain)) {
+      if (mode === "manual") {
         return {
-          domain: normalizedDomain,
-          searchUrl: searchRequests[0]?.displayUrl,
+          domain,
+          searchUrl: requests[0]?.displayUrl,
           state: "manual",
           message: shared.describeFetchFailure({ status: 403 })
         };
@@ -57,7 +57,7 @@
       let lastFailure = null;
       let hadSuccessfulResponse = false;
 
-      for (const searchRequest of searchRequests) {
+      for (const searchRequest of requests) {
         const response = await fetchSearchRequest(searchRequest);
 
         if (!response.ok || !response.text) {
@@ -71,21 +71,19 @@
         }
 
         hadSuccessfulResponse = true;
-        const candidates = shared.extractProductCandidates(
+        let bestCandidate = candidateExtraction.findBestCandidate(
           response.text,
           response.url || searchRequest.displayUrl,
           searchRequest.matchQuery || productName
         );
 
-        if (candidates.length > 0) {
-          let bestCandidate = candidates[0];
-
-          if (shopCatalog.shouldVerifyDetailPrice(normalizedDomain) && bestCandidate.url) {
+        if (bestCandidate) {
+          if (verifyDetailPrice && bestCandidate.url) {
             bestCandidate = await verifyPriceFromDetailPage(bestCandidate, productName);
           }
 
           return {
-            domain: normalizedDomain,
+            domain,
             searchUrl: searchRequest.displayUrl,
             state: "found",
             ...bestCandidate
@@ -95,8 +93,8 @@
 
       if (hadSuccessfulResponse) {
         return {
-          domain: normalizedDomain,
-          searchUrl: searchRequests[0]?.displayUrl,
+          domain,
+          searchUrl: requests[0]?.displayUrl,
           state: "manual",
           message: shared.MANUAL_NO_MATCH_MESSAGE
         };
@@ -107,11 +105,31 @@
         : "Nepodarilo sa nacitat obchod.";
 
       return {
-        domain: normalizedDomain,
-        searchUrl: searchRequests[0]?.displayUrl,
-        state: searchRequests[0]?.displayUrl ? "manual" : "error",
+        domain,
+        searchUrl: requests[0]?.displayUrl,
+        state: requests[0]?.displayUrl ? "manual" : "error",
         message: failureMessage
       };
+    }
+
+    async function checkShop(domain, productName) {
+      const plan = shopPlanning.createShopPlan({
+        shops: [domain],
+        locale: String(domain || "").endsWith(".cz") ? "cz" : "sk",
+        productName,
+        includeDefaults: false
+      });
+      const [shopPlan] = plan.entries;
+
+      if (!shopPlan) {
+        return {
+          domain: shopCatalog.normalizeDomain(domain),
+          state: "error",
+          message: "Nepodarilo sa naplanovat kontrolu obchodu."
+        };
+      }
+
+      return checkPlannedShop(shopPlan, productName);
     }
 
     function createFailedShopResult(domain, error) {
@@ -123,31 +141,29 @@
     }
 
     async function checkShops({ shops, locale, productName, onProgress, onResult } = {}) {
-      const allShops = shared.mergeDefaultSearchShops(shops, locale);
-      const supportedShops = allShops.filter((domain) => shopCatalog.hasSearchTemplate(domain));
-      const unsupportedShops = allShops.filter((domain) => !shopCatalog.hasSearchTemplate(domain));
+      const plan = shopPlanning.createShopPlan({ shops, locale, productName });
       const results = [];
 
-      for (const domain of supportedShops) {
+      for (const shopPlan of plan.supportedEntries) {
         onProgress?.({
-          domain,
+          domain: shopPlan.domain,
           checkedCount: results.length,
-          totalCount: supportedShops.length
+          totalCount: plan.supportedCount
         });
 
         let result;
 
         try {
-          result = await checkShop(domain, productName);
+          result = await checkPlannedShop(shopPlan, productName);
         } catch (error) {
-          result = createFailedShopResult(domain, error);
+          result = createFailedShopResult(shopPlan.domain, error);
         }
 
         results.push(result);
         onResult?.(results.slice());
       }
 
-      for (const domain of unsupportedShops) {
+      for (const { domain } of plan.unsupportedEntries) {
         results.push({
           domain,
           state: "manual",
@@ -157,9 +173,9 @@
 
       return {
         results,
-        supportedCount: supportedShops.length,
-        supportedShops,
-        unsupportedShops
+        supportedCount: plan.supportedCount,
+        supportedShops: plan.supportedShops,
+        unsupportedShops: plan.unsupportedShops
       };
     }
 

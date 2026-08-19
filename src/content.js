@@ -393,14 +393,6 @@
 
     try {
       state.shops = await loadSupportedShops();
-      const plannedShops = shared.mergeDefaultSearchShops(state.shops, getLocale());
-      const supportedShops = plannedShops.filter((domain) => shared.hasSearchTemplate(domain));
-
-      if (supportedShops.length === 0) {
-        renderStatus("Nenasiel som obchody na kontrolu. Otvor Garancia najlepsej ceny na Alze a skus znova.");
-        return;
-      }
-
       const checkResult = await priceGuaranteeChecker.checkShops({
         shops: state.shops,
         locale: getLocale(),

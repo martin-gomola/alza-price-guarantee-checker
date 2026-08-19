@@ -1,6 +1,6 @@
 ---
 name: discover-shop-search-urls
-description: Discover search URLs and diagnose why Garancia najlepsej ceny shops fail in the Alza Price Guarantee Checker (missing template, bot block, AJAX endpoint, or parser gap). Use when a new shop appears in Alza's guarantee dialog, hasSearchTemplate is false, a shop shows only a homepage link or manual check despite having a template, or the user asks to add/fix shop search support.
+description: Discover search URLs and diagnose why Garancia najlepsej ceny shops fail in the Alza Price Guarantee Checker (missing policy, bot block, AJAX endpoint, or parser gap). Use when a new shop appears in Alza's guarantee dialog, has no shop policy, shows only a homepage link or manual check despite having a policy, or the user asks to add/fix shop search support.
 ---
 
 # Discover Shop Search URLs
@@ -9,7 +9,7 @@ Find correct search URLs for Garancia shops **and** classify failures that need 
 
 ## When to use
 
-- New shop in guarantee dialog without `SEARCH_TEMPLATES` entry
+- New shop in guarantee dialog without a shop policy
 - Shop shows **Skontrolovat na …** with error despite existing template
 - User asks to add/fix support for a `.sk` / `.cz` competitor
 - Periodic audit: manifest hosts vs configured templates
@@ -18,10 +18,11 @@ Find correct search URLs for Garancia shops **and** classify failures that need 
 
 | File | When to change |
 |------|----------------|
-| `src/shared.js` | `SEARCH_TEMPLATES`, shop-specific extractors |
+| `src/shop-catalog.js` | Per-shop templates, mode, and detail-verification policy |
+| `src/shop-planning.js` | Search-query and request planning |
+| `src/candidate-extraction.js` | Shop-specific extraction and matching policy |
 | `manifest.json` | Missing `host_permissions` |
-| `shared.test.js` | `buildSearchRequests` + extractor fixture tests |
-| `src/content.js` | `VERIFY_PRICE_DOMAINS`, `MANUAL_ONLY_SHOPS` |
+| `shared.test.js` | Shop-plan request + candidate-extraction fixture tests |
 | `src/background.js` | Fetch headers when shops block bare requests |
 
 Placeholders: `{query}` (`%20` spaces), `{queryPlus}` (`+` spaces).
@@ -59,13 +60,13 @@ Default probe query: `samsung`. Override with `--query`.
 ## Workflow (decision tree)
 
 ```
-1. hasSearchTemplate(domain)?
-   NO  → --discover → add template + manifest + buildSearchRequests test
+1. getShopPolicy(domain)?
+   NO  → --discover → add shop policy + manifest + shop-plan test
    YES → --probe
 
 2. --probe diagnosis?
    template_ok          → done; verify in extension
-   needs_ajax_template  → dual SEARCH_TEMPLATES entry; see failure-modes.md
+   needs_ajax_template  → dual `searchTemplates` entry; see failure-modes.md
    needs_parser         → add extractor + fixture test; see parser-integration.md
    blocked              → manual link OK; try background.js User-Agent
    spa_shell            → DevTools Network; often not automatable (dm.cz)
@@ -76,11 +77,11 @@ Default probe query: `samsung`. Override with `--query`.
 
 ## Apply a new template
 
-1. Add to `SEARCH_TEMPLATES` in `src/shared.js` (SK/CZ blocks, alphabetical).
+1. Add one shop policy in `src/shop-catalog.js` (alphabetical).
 2. Add `host_permissions` in `manifest.json` if missing.
-3. Add `buildSearchRequests` test in `shared.test.js`.
+3. Add a shop-plan request test in `shared.test.js`.
 4. Run `--probe` — if `needs_parser`, follow [references/parser-integration.md](references/parser-integration.md).
-5. Add to `VERIFY_PRICE_DOMAINS` when search snippets lie about price.
+5. Set `verifyDetailPrice: true` in the shop policy when search snippets lie about price.
 6. `npm test`, then reload extension and test on Alza product page.
 
 ## CZ drugstore cluster
@@ -99,7 +100,7 @@ Frequent Garancia CZ shops and typical outcomes — see [references/failure-mode
 
 | Shop | Notes |
 |------|-------|
-| `heureka.sk/cz` | `MANUAL_ONLY_SHOPS`; template for manual link only |
+| `heureka.sk/cz` | `mode: "manual"`; template for manual link only |
 | `abc-zoo.sk` | POST Luigi Box — never replace with guessed GET |
 | `hornbach.sk` | Path search `/s/{query}` |
 | `obi.sk` | Path search `/search/{queryPlus}` |

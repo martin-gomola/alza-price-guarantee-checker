@@ -4,10 +4,13 @@
 const fs = require("node:fs");
 const path = require("node:path");
 
+const shopCatalog = require("../../../../src/shop-catalog.js");
 const shared = require("../../../../src/shared.js");
+const candidateExtraction = require("../../../../src/candidate-extraction.js");
+const shopPlanning = require("../../../../src/shop-planning.js");
 
 const ROOT = path.resolve(__dirname, "../../../..");
-const SHARED_PATH = path.join(ROOT, "src/shared.js");
+const SHOP_CATALOG_PATH = path.join(ROOT, "src/shop-catalog.js");
 const FIXTURES_DIR = path.join(__dirname, "../references/fixtures");
 const PROBE_QUERY = "samsung";
 const FETCH_TIMEOUT_MS = 12000;
@@ -80,9 +83,24 @@ function normalizeDomain(domain) {
 }
 
 function readConfiguredDomains() {
-  const source = fs.readFileSync(SHARED_PATH, "utf8");
+  const source = fs.readFileSync(SHOP_CATALOG_PATH, "utf8");
   const matches = source.matchAll(/^\s*"([a-z0-9.-]+\.(?:sk|cz))"\s*:/gm);
   return [...new Set([...matches].map((match) => match[1]))].sort();
+}
+
+function getConfiguredPolicy(domain) {
+  return shopCatalog.getShopPolicy(domain);
+}
+
+function getPlannedRequests(domain, query) {
+  const plan = shopPlanning.createShopPlan({
+    shops: [domain],
+    locale: domain.endsWith(".cz") ? "cz" : "sk",
+    productName: query,
+    includeDefaults: false
+  });
+
+  return plan.entries[0]?.requests || [];
 }
 
 function readManifestHosts() {
@@ -102,7 +120,7 @@ function readManifestHosts() {
 
 function buildCandidateUrls(domain, query) {
   const urls = new Set();
-  const requests = shared.buildSearchRequests(domain, query);
+  const requests = getPlannedRequests(domain, query);
 
   for (const request of requests) {
     urls.add(request.url);
@@ -239,10 +257,10 @@ async function fetchText(url) {
 }
 
 function scoreResponse(text, finalUrl, query) {
-  const candidates = shared.extractProductCandidates(text, finalUrl, query);
+  const candidate = candidateExtraction.findBestCandidate(text, finalUrl, query);
 
-  if (candidates.length > 0) {
-    return { level: "confirmed", count: candidates.length, sample: candidates[0].title };
+  if (candidate) {
+    return { level: "confirmed", count: 1, sample: candidate.title };
   }
 
   const lower = String(text || "").toLowerCase();
@@ -256,11 +274,13 @@ function scoreResponse(text, finalUrl, query) {
 }
 
 function classifyProbe({ domain, status, text, candidateCount, ajaxEndpoints, parserSignals }) {
-  if (shared.isManualOnlyShop(domain)) {
+  const policy = getConfiguredPolicy(domain);
+
+  if (policy?.mode === "manual") {
     return "manual_only";
   }
 
-  if (!shared.hasSearchTemplate(domain)) {
+  if (!policy) {
     return "template_missing";
   }
 
@@ -318,7 +338,7 @@ function saveFixture(domain, text) {
 }
 
 async function probeDomain(domain, query, saveFixtureFlag) {
-  const requests = shared.buildSearchRequests(domain, query);
+  const requests = getPlannedRequests(domain, query);
   const primary = requests[0];
 
   if (!primary) {
@@ -330,7 +350,7 @@ async function probeDomain(domain, query, saveFixtureFlag) {
   }
 
   const response = await fetchText(primary.url);
-  const candidates = shared.extractProductCandidates(response.text, response.url || primary.url, query);
+  const candidate = candidateExtraction.findBestCandidate(response.text, response.url || primary.url, query);
   const parserSignals = detectParserSignals(response.text);
   const ajaxFromResponse = detectAjaxEndpoints(response.text, domain);
 
@@ -345,7 +365,7 @@ async function probeDomain(domain, query, saveFixtureFlag) {
     domain,
     status: response.status,
     text: response.text,
-    candidateCount: candidates.length,
+    candidateCount: candidate ? 1 : 0,
     ajaxEndpoints,
     parserSignals
   });
@@ -359,15 +379,15 @@ async function probeDomain(domain, query, saveFixtureFlag) {
   return {
     domain,
     diagnosis,
-    configured: shared.hasSearchTemplate(domain),
+    configured: Boolean(getConfiguredPolicy(domain)),
     fetchUrl: primary.url,
     displayUrl: primary.displayUrl || primary.url,
     status: response.status,
     htmlLength: response.text.length,
     priceMentions: countPriceMentions(response.text),
-    candidateCount: candidates.length,
-    sample: candidates[0]?.title || "",
-    samplePrice: candidates[0]?.price?.text || "",
+    candidateCount: candidate ? 1 : 0,
+    sample: candidate?.title || "",
+    samplePrice: candidate?.price?.text || "",
     parserSignals,
     ajaxEndpoints,
     fixturePath,
@@ -376,7 +396,7 @@ async function probeDomain(domain, query, saveFixtureFlag) {
 }
 
 async function discoverDomain(domain, query) {
-  const configured = shared.hasSearchTemplate(domain);
+  const configured = Boolean(getConfiguredPolicy(domain));
   const homepageUrls = [`https://www.${domain}/`, `https://${domain}/`];
   const candidateTemplates = new Set();
 
@@ -449,7 +469,7 @@ See references/failure-modes.md
 function printList(domains) {
   console.log(`Configured search templates (${domains.length}):`);
   for (const domain of domains) {
-    const manual = shared.isManualOnlyShop(domain) ? " [manual-only]" : "";
+    const manual = getConfiguredPolicy(domain)?.mode === "manual" ? " [manual-only]" : "";
     console.log(`  ${domain}${manual}`);
   }
 }
@@ -483,9 +503,9 @@ function printProbe(report) {
   }
 
   const nextSteps = {
-    template_missing: "Run --discover and add SEARCH_TEMPLATES + manifest + test",
+    template_missing: "Run --discover and add a shop policy + manifest + test",
     template_ok: "Done — verify in extension UI",
-    needs_parser: "Add extractor in shared.js + fixture test (see parser-integration.md)",
+    needs_parser: "Add extractor in candidate-extraction.js + fixture test (see parser-integration.md)",
     needs_ajax_template: "Add dual template url/displayUrl (see failure-modes.md, rossmann.cz)",
     blocked: "Manual fallback; extension may still work — test in Chrome",
     spa_shell: "Inspect DevTools Network; likely SPA (dm.cz pattern)",
@@ -520,8 +540,8 @@ function printDiscovery(report) {
   const best = report.results.find((result) => result.level === "confirmed") || report.results[0];
 
   if (best && best.level !== "failed") {
-    console.log("\nSuggested SEARCH_TEMPLATES entry:");
-    console.log(`  "${report.domain}": ["${best.template}"],`);
+    console.log("\nSuggested shop policy entry:");
+    console.log(`  "${report.domain}": { searchTemplates: ["${best.template}"] },`);
     console.log("\nRun --probe after adding to verify parsing.");
   }
 }
@@ -543,11 +563,11 @@ async function main() {
     args.domains.length > 0
       ? args.domains
       : args.command === "audit"
-        ? readManifestHosts().filter((host) => !shared.hasSearchTemplate(host) && !/^alza/.test(host))
+        ? readManifestHosts().filter((host) => !getConfiguredPolicy(host) && !/^alza/.test(host))
         : [];
 
   if (args.command === "audit") {
-    const missing = domains.filter((host) => !shared.hasSearchTemplate(host));
+    const missing = domains.filter((host) => !getConfiguredPolicy(host));
 
     if (missing.length === 0) {
       console.log("All manifest hosts have search templates.");
