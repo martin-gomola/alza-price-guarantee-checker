@@ -4,3 +4,4 @@ _metadata/
 node_modules/
 dist/
 .agents/skills/discover-shop-search-urls/references/fixtures/
+.DS_Store
